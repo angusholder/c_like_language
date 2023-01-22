@@ -5,16 +5,15 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-public sealed interface AstExpr permits AstExpr.Atom, AstExpr.Binary, AstExpr.Block, AstExpr.Call, AstExpr.If, AstExpr.Unary, AstExpr.While, AstItem {
-    sealed interface Atom extends AstExpr { }
+public sealed interface AstExpr {
 
     record Number(
             String text
-    ) implements Atom {}
+    ) implements AstExpr {}
 
     record Identifier(
             String text
-    ) implements Atom {}
+    ) implements AstExpr {}
 
     record Binary(
             AstExpr left,
@@ -82,7 +81,7 @@ public sealed interface AstExpr permits AstExpr.Atom, AstExpr.Binary, AstExpr.Bl
             String name,
             List<FuncParam> parameters,
             AstExpr.Block body
-    ) implements AstItem {
+    ) implements Item {
     }
 
     record FuncParam(
@@ -95,6 +94,10 @@ public sealed interface AstExpr permits AstExpr.Atom, AstExpr.Binary, AstExpr.Bl
             String name,
             AstType type,
             AstExpr value
-    ) implements AstItem {
+    ) implements Item {
+    }
+
+    /** The subset of expressions that are allowed at the top level in a file. */
+    sealed interface Item extends AstExpr permits Function, Let {
     }
 }

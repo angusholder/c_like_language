@@ -21,7 +21,7 @@ public class Parser {
     }
 
     public AstFile parseFile() {
-        var items = new ArrayList<AstItem>();
+        var items = new ArrayList<AstExpr.Item>();
         while (tokenizer.hasNext()) {
             items.add(parseItem());
         }
@@ -42,17 +42,17 @@ public class Parser {
         return new AstExpr.Block(items);
     }
 
-    public AstItem parseItem() {
+    public AstExpr.Item parseItem() {
         return parseItemInternal(true);
     }
 
-    private AstItem parseItemInternal(boolean semicolonTerminated) {
+    private AstExpr.Item parseItemInternal(boolean semicolonTerminated) {
         switch (tokenizer.peek()) {
             case K_FUNC -> {
                 return parseFunction();
             }
             case K_LET -> {
-                AstItem expr = parseLet();
+                AstExpr.Item expr = parseLet();
                 if (semicolonTerminated) {
                     tokenizer.expect(TokenType.SEMICOLON);
                 }
@@ -92,7 +92,7 @@ public class Parser {
         return new AstExpr.If(condition, thenBranch, elseIfs, elseBranch);
     }
 
-    private AstItem.Function parseFunction() {
+    private AstExpr.Item.Function parseFunction() {
         tokenizer.expect(TokenType.K_FUNC);
         Token name = tokenizer.expect(TokenType.IDENTIFIER);
         tokenizer.expect(TokenType.LPAREN);
@@ -113,17 +113,17 @@ public class Parser {
         }
         tokenizer.expect(TokenType.RPAREN);
         AstExpr.Block body = parseBlock();
-        return new AstItem.Function(name, tokenizer.getSourceOf(name), params, body);
+        return new AstExpr.Item.Function(name, tokenizer.getSourceOf(name), params, body);
     }
 
-    private AstItem.Let parseLet() {
+    private AstExpr.Item.Let parseLet() {
         tokenizer.expect(TokenType.K_LET);
         Token name = tokenizer.expect(TokenType.IDENTIFIER);
         tokenizer.expect(TokenType.COLON);
         AstType type = parseType();
         tokenizer.expect(TokenType.ASSIGN);
         AstExpr value = parseExpr();
-        return new AstItem.Let(name, tokenizer.getSourceOf(name), type, value);
+        return new AstExpr.Item.Let(name, tokenizer.getSourceOf(name), type, value);
     }
 
     private AstType parseType() {

@@ -6,6 +6,6 @@ import java.util.List;
 
 public record AstFile(
         CompilerCtx.FileInfo file,
-        List<AstItem> items
+        List<AstExpr.Item> items
 ) {
 }

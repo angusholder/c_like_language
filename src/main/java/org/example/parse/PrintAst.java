@@ -27,7 +27,7 @@ public class PrintAst {
     public void visit(AstFile file) {
         println(file.file().name());
         indented(() -> {
-            for (AstItem item : file.items()) {
+            for (AstExpr.Item item : file.items()) {
                 visit(item);
             }
         });
@@ -90,7 +90,7 @@ public class PrintAst {
             case AstExpr.Identifier identifier -> {
                 println("Identifier: " + identifier.text());
             }
-            case AstItem.Function function -> {
+            case AstExpr.Item.Function function -> {
                 println("Function: " + function.name());
                 indented(() -> {
                     println("Params:");
@@ -109,7 +109,7 @@ public class PrintAst {
                     });
                 });
             }
-            case AstItem.Let let -> {
+            case AstExpr.Item.Let let -> {
                 println("Let");
                 indented(() -> {
                     println(let.name());
