@@ -23,7 +23,7 @@ public class Parser {
     public AstFile parseFile() {
         var items = new ArrayList<AstExpr.Item>();
         while (tokenizer.hasNext()) {
-            items.add(parseItem());
+            items.add(parseTopLevelItem());
         }
         return new AstFile(tokenizer.getFile(), items);
     }
@@ -42,20 +42,14 @@ public class Parser {
         return new AstExpr.Block(items);
     }
 
-    public AstExpr.Item parseItem() {
-        return parseItemInternal(true);
-    }
-
-    private AstExpr.Item parseItemInternal(boolean semicolonTerminated) {
+    private AstExpr.Item parseTopLevelItem() {
         switch (tokenizer.peek()) {
             case K_FUNC -> {
                 return parseFunction();
             }
             case K_LET -> {
                 AstExpr.Let expr = parseLet();
-                if (semicolonTerminated) {
-                    tokenizer.expect(TokenType.SEMICOLON);
-                }
+                tokenizer.expect(TokenType.SEMICOLON);
                 return expr;
             }
             default -> {
@@ -146,8 +140,11 @@ public class Parser {
             case LBRACE -> {
                 return parseBlock();
             }
-            case K_LET, K_FUNC -> {
-                return parseItemInternal(false);
+            case K_LET -> {
+                return parseLet();
+            }
+            case K_FUNC -> {
+                return parseFunction();
             }
             case K_WHILE -> {
                 return parseWhile();
