@@ -1,0 +1,10 @@
+func main() {
+    int last = 1;
+    int current = 1;
+    while (true) {
+        int next = last + current;
+        last = current;
+        current = next;
+        println(current);
+    }
+}
