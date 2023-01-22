@@ -50,6 +50,7 @@ public class Tokenizer {
     @NotNull
     public Token next() {
         Token result = peekToken();
+//        new RuntimeException("Consumed " + result.type()).printStackTrace();
         peeked = null;
         return result;
     }
@@ -122,6 +123,9 @@ public class Tokenizer {
             }
             case ':' -> {
                 return makeToken(TokenType.COLON);
+            }
+            case ',' -> {
+                return makeToken(TokenType.COMMA);
             }
             case '(' -> {
                 return makeToken(TokenType.LPAREN);

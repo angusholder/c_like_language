@@ -16,7 +16,10 @@ public class PrintAst {
 
     private void println(String s) {
         for (int i = 0; i < indent; i++) {
-            stream.print("  ");
+            if (i == indent - 1)
+                stream.print("└─");
+            else
+                stream.print("  ");
         }
         stream.println(s);
     }
@@ -100,7 +103,12 @@ public class PrintAst {
                 });
             }
             case AstItem.Let let -> {
-                println("Let " + let.name());
+                println("Let");
+                indented(() -> {
+                    println(let.name());
+                    println(let.type());
+                    visit(let.value());
+                });
             }
         }
     }

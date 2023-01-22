@@ -87,7 +87,7 @@ public sealed interface AstExpr permits AstExpr.Atom, AstExpr.Binary, AstExpr.Bl
     record Let(
             Token nameToken,
             String name,
-            Token type,
+            String type,
             AstExpr value
     ) implements AstItem {
     }

@@ -33,18 +33,30 @@ public class Parser {
         tokenizer.expect(TokenType.LBRACE);
         while (tokenizer.hasNext()) {
             items.add(parseExpr());
+            tokenizer.expect(TokenType.SEMICOLON);
+            if (tokenizer.peek() == TokenType.RBRACE) {
+                break;
+            }
         }
         tokenizer.expect(TokenType.RBRACE);
         return new AstExpr.Block(items);
     }
 
     public AstItem parseItem() {
+        return parseItemInternal(true);
+    }
+
+    private AstItem parseItemInternal(boolean semicolonTerminated) {
         switch (tokenizer.peek()) {
             case K_FUNC -> {
                 return parseFunction();
             }
             case K_LET -> {
-                return parseLet();
+                AstItem expr = parseLet();
+                if (semicolonTerminated) {
+                    tokenizer.expect(TokenType.SEMICOLON);
+                }
+                return expr;
             }
             default -> {
                 throw tokenizer.reportWrongTokenType(TokenType.K_FUNC, TokenType.K_LET);
@@ -97,8 +109,7 @@ public class Parser {
         Token type = tokenizer.expect(TokenType.IDENTIFIER);
         tokenizer.expect(TokenType.ASSIGN);
         AstExpr value = parseExpr();
-        tokenizer.expect(TokenType.SEMICOLON);
-        return new AstItem.Let(name, tokenizer.getSourceOf(name), type, value);
+        return new AstItem.Let(name, tokenizer.getSourceOf(name), tokenizer.getSourceOf(type), value);
     }
 
     private AstExpr parseParenExpr() {
@@ -119,7 +130,7 @@ public class Parser {
                 return parseBlock();
             }
             case K_LET, K_FUNC -> {
-                return parseItem();
+                return parseItemInternal(false);
             }
             case K_WHILE -> {
                 return parseWhile();
@@ -135,13 +146,36 @@ public class Parser {
                 return new AstExpr.Number(tokenizer.getSourceOf(token));
             }
             case IDENTIFIER -> {
-                var token = tokenizer.next();
-                return new AstExpr.Identifier(tokenizer.getSourceOf(token));
+                Token ident = tokenizer.next();
+                if (tokenizer.peek() == TokenType.LPAREN) {
+                    return parseCall(ident);
+                }
+                return new AstExpr.Identifier(tokenizer.getSourceOf(ident));
             }
             default -> {
                 throw tokenizer.reportWrongTokenType(TokenType.LBRACE, TokenType.K_LET, TokenType.K_FUNC, TokenType.K_WHILE, TokenType.K_IF, TokenType.LPAREN, TokenType.NUMBER, TokenType.IDENTIFIER);
             }
         }
+    }
+
+    private AstExpr parseCall(Token name) {
+        tokenizer.expect(TokenType.LPAREN);
+        List<AstExpr> args = new ArrayList<>();
+        while (true) {
+            if (tokenizer.peek() == TokenType.RPAREN) {
+                break;
+            }
+            args.add(parseExpr());
+            if (tokenizer.peek() == TokenType.RPAREN) {
+                break;
+            }
+            tokenizer.expect(TokenType.COMMA);
+            if (tokenizer.peek() == TokenType.RPAREN) {
+                break;
+            }
+        }
+        tokenizer.expect(TokenType.RPAREN);
+        return new AstExpr.Call(tokenizer.getSourceOf(name), args);
     }
 
     // unary :: (MINUS | NOT) unary | atom ;
@@ -244,7 +278,7 @@ public class Parser {
     /*
     Expression grammar:
 
-    atom :: STRING | NUMBER | IDENTIFIER | LPAREN expr RPAREN | IF_STMT | WHILE_STMT | BLOCK | LET_STMT | FUNC_STMT ;
+    atom :: STRING | NUMBER | call | IDENTIFIER | LPAREN expr RPAREN | IF_STMT | WHILE_STMT | BLOCK | LET_STMT | FUNC_STMT ;
     unary :: (MINUS | NOT) unary | atom ;
     mul :: unary ((STAR | DIVIDE) unary)* ;
     add :: mul ((PLUS | MINUS) mul)* ;

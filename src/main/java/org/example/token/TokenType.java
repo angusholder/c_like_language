@@ -26,6 +26,7 @@ public enum TokenType {
 
     COLON(":"),
     SEMICOLON(";"),
+    COMMA(","),
 
     LPAREN("("),
     RPAREN(")"),
