@@ -44,7 +44,7 @@ public class CompilerCtx {
     }
 
     public Tokenizer createTokenizer(FileInfo file) {
-        return new Tokenizer(file);
+        return new Tokenizer(this, file);
     }
 
     public Parser createParser(FileInfo file) {

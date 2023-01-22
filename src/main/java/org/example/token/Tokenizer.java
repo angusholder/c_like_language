@@ -11,15 +11,17 @@ import java.util.stream.Collectors;
 public class Tokenizer {
     private final String source;
     private final CompilerCtx.FileInfo file;
+    private final CompilerCtx ctx;
     private int position = 0;
     private int token_start = 0;
 
     @Nullable
     private Token peeked = null;
 
-    public Tokenizer(CompilerCtx.FileInfo file) {
+    public Tokenizer(CompilerCtx ctx, CompilerCtx.FileInfo file) {
         this.source = file.contents();
         this.file = file;
+        this.ctx = ctx;
     }
 
     public CompilerCtx.FileInfo getFile() {
@@ -62,11 +64,12 @@ public class Tokenizer {
 
     @NotNull
     public WrongTokenTypeException reportWrongTokenType(Token token, TokenType... expectedTypes) {
+        SourceSpan span = ctx.getSourceSpan(token);
         if (expectedTypes.length == 1) {
-            return new WrongTokenTypeException(token, "Got " + token.type() + ", expected " + expectedTypes[0].repr);
+            return new WrongTokenTypeException(token, span.formattedLocation() + " Got " + token.type() + ", expected " + expectedTypes[0].repr);
         } else {
             String expected = Arrays.stream(expectedTypes).map(t -> t.repr).collect(Collectors.joining(", "));
-            return new WrongTokenTypeException(token, "Got " + token.type() + ", expected one of [" + expected + "]");
+            return new WrongTokenTypeException(token, span.formattedLocation() + " Got " + token.type() + ", expected one of [" + expected + "]");
         }
     }
 

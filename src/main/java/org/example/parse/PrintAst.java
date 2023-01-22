@@ -1,7 +1,6 @@
 package org.example.parse;
 
 import java.io.PrintStream;
-import java.util.function.Supplier;
 
 public class PrintAst {
     private final PrintStream stream;
@@ -48,13 +47,32 @@ public class PrintAst {
                 });
             }
             case AstExpr.Call call -> {
-                throw new UnsupportedOperationException();
+                println("Call:");
+                indented(() -> {
+                    println(call.callee());
+                    for (AstExpr arg : call.arguments()) {
+                        visit(arg);
+                    }
+                });
             }
             case AstExpr.If anIf -> {
-                throw new UnsupportedOperationException();
+                println("if");
+                indented(() -> visit(anIf.condition()));
+                println("then");
+                indented(() -> visit(anIf.thenBranch()));
+                for (var elseif : anIf.elseIfs()) {
+                    println("elseif");
+                    indented(() -> visit(elseif.condition()));
+                    indented(() -> visit(elseif.thenBranch()));
+                }
+                if (anIf.elseBranch() != null) {
+                    println("else");
+                    indented(() -> visit(anIf.elseBranch()));
+                }
             }
             case AstExpr.Unary unary -> {
-                throw new UnsupportedOperationException();
+                println(unary.op().name());
+                indented(() -> visit(unary.expr()));
             }
             case AstExpr.While aWhile -> {
                 println("while");
@@ -62,8 +80,11 @@ public class PrintAst {
                 println("do");
                 indented(() -> visit(aWhile.body()));
             }
-            case AstExpr.Atom atom -> {
-                visit(atom);
+            case AstExpr.Number number -> {
+                println("Number: " + number.text());
+            }
+            case AstExpr.Identifier identifier -> {
+                println("Identifier: " + identifier.text());
             }
             case AstItem.Function function -> {
                 println("Function: " + function.name());
@@ -84,27 +105,6 @@ public class PrintAst {
         }
     }
 
-    private void visit(AstExpr.Atom atom) {
-        switch (atom) {
-            case AstExpr.Number number -> {
-                println("Number: " + number.text());
-            }
-            case AstExpr.Identifier identifier -> {
-                println("Identifier: " + identifier.text());
-            }
-        }
-    }
-
-    private <T> T indented(Supplier<T> block) {
-        int prevIndent = indent;
-        indent++;
-        try {
-            return block.get();
-        } finally {
-            indent = prevIndent;
-        }
-    }
-
     private void indented(Runnable block) {
         int prevIndent = indent;
         indent++;
@@ -113,9 +113,5 @@ public class PrintAst {
         } finally {
             indent = prevIndent;
         }
-    }
-
-    private interface Idented {
-        void close();
     }
 }
