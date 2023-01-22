@@ -141,7 +141,6 @@ public class Parser {
         return exprOr();
     }
 
-    // atom :: STRING | NUMBER | IDENTIFIER | LPAREN expr RPAREN | IF_STMT | WHILE_STMT | BLOCK | LET_STMT | FUNC_STMT ;
     private AstExpr exprAtom() {
         switch (tokenizer.peek()) {
             case LBRACE -> {
@@ -168,12 +167,21 @@ public class Parser {
                 if (tokenizer.peek() == TokenType.LPAREN) {
                     return parseCall(ident);
                 }
+                if (tokenizer.peek() == TokenType.ASSIGN) {
+                    return parseAssign(ident);
+                }
                 return new AstExpr.Identifier(tokenizer.getSourceOf(ident));
             }
             default -> {
                 throw tokenizer.reportWrongTokenType(TokenType.LBRACE, TokenType.K_LET, TokenType.K_FUNC, TokenType.K_WHILE, TokenType.K_IF, TokenType.LPAREN, TokenType.NUMBER, TokenType.IDENTIFIER);
             }
         }
+    }
+
+    private AstExpr parseAssign(Token ident) {
+        tokenizer.expect(TokenType.ASSIGN);
+        AstExpr value = parseExpr();
+        return new AstExpr.Assign(tokenizer.getSourceOf(ident), value);
     }
 
     private AstExpr parseCall(Token name) {
@@ -196,7 +204,6 @@ public class Parser {
         return new AstExpr.Call(tokenizer.getSourceOf(name), args);
     }
 
-    // unary :: (MINUS | NOT) unary | atom ;
     private AstExpr exprUnary() {
         UnaryOp op;
         switch (tokenizer.peek()) {
@@ -212,7 +219,6 @@ public class Parser {
         return new AstExpr.Unary(op, expr);
     }
 
-    // mul :: unary ((STAR | DIVIDE) unary)* ;
     private AstExpr exprMul() {
         AstExpr expr = exprUnary();
         while (true) {
@@ -231,7 +237,6 @@ public class Parser {
         }
     }
 
-    // add :: mul ((PLUS | MINUS) mul)* ;
     private AstExpr exprAdd() {
         AstExpr expr = exprMul();
         while (true) {
@@ -250,7 +255,6 @@ public class Parser {
         }
     }
 
-    // comparison :: add ((EQUAL | NOT_EQUAL) add)* ;
     private AstExpr exprComparison() {
         AstExpr expr = exprAdd();
         while (true) {
@@ -273,7 +277,6 @@ public class Parser {
         }
     }
 
-    // and :: comparison (AND comparison)* ;
     private AstExpr exprAnd() {
         AstExpr expr = exprComparison();
         while (tokenizer.matchConsume(TokenType.AND)) {
@@ -283,7 +286,6 @@ public class Parser {
         return expr;
     }
 
-    // or :: and (OR and)* ;
     private AstExpr exprOr() {
         AstExpr expr = exprAnd();
         while (tokenizer.matchConsume(TokenType.OR)) {
@@ -296,14 +298,16 @@ public class Parser {
     /*
     Expression grammar:
 
-    atom :: STRING | NUMBER | call | IDENTIFIER | LPAREN expr RPAREN | IF_STMT | WHILE_STMT | BLOCK | LET_STMT | FUNC_STMT ;
-    unary :: (MINUS | NOT) unary | atom ;
-    mul :: unary ((STAR | DIVIDE) unary)* ;
-    add :: mul ((PLUS | MINUS) mul)* ;
-    comparison :: add ((EQUAL | NOT_EQUAL) add)* ;
-    and :: comparison (AND comparison)* ;
-    or :: and (OR and)* ;
+    atom :: STRING | NUMBER | call | IDENTIFIER | '(' expr ')' | if_stmt | while_stmt | block | let_stmt | func_stmt | assign ;
+    unary :: ('-' | '!') unary | atom ;
+    mul :: unary (('*' | '/') unary)* ;
+    add :: mul (('+' | '-') mul)* ;
+    comparison :: add (('==' | '!=' | '<' | '<=' | '>' | '>=') add)* ;
+    and :: comparison ('&&' comparison)* ;
+    or :: and ('||' and)* ;
 
     expr :: or ;
+
+    assign :: IDENTIFIER '=' expr ;
      */
 }

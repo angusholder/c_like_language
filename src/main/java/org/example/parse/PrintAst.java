@@ -117,6 +117,13 @@ public class PrintAst {
                     visit(let.value());
                 });
             }
+            case AstExpr.Assign assign -> {
+                println("Assign");
+                indented(() -> {
+                    println(assign.lhs());
+                    visit(assign.rhs());
+                });
+            }
         }
     }
 

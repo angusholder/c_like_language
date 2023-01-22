@@ -100,4 +100,9 @@ public sealed interface AstExpr {
     /** The subset of expressions that are allowed at the top level in a file. */
     sealed interface Item extends AstExpr permits Function, Let {
     }
+
+    record Assign(
+            String name,
+            AstExpr value
+    ) implements AstExpr {}
 }
