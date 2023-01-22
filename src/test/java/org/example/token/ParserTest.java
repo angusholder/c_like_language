@@ -17,6 +17,12 @@ public class ParserTest {
             println(c);
             println(c == a+b);
         }
+        
+        func emptyFunc() {}
+        func oneParam(a: int) {}
+        func oneParamCommad(a: int,) {}
+        func twoParams(a: int, b: int) {}
+        func twoParamsComma(a: int, b: int,) {}
         """);
     }
 

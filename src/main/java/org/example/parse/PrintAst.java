@@ -93,7 +93,13 @@ public class PrintAst {
             case AstItem.Function function -> {
                 println("Function: " + function.name());
                 indented(() -> {
-                    println("Args: []");
+                    println("Params:");
+                    indented(() -> {
+                        for (var param : function.parameters()) {
+                            println(param.name());
+                            println(param.type().toString());
+                        }
+                    });
                     println("Body:");
 
                     indented(() -> {
@@ -107,7 +113,7 @@ public class PrintAst {
                 println("Let");
                 indented(() -> {
                     println(let.name());
-                    println(let.type());
+                    println(let.type().toString());
                     visit(let.value());
                 });
             }

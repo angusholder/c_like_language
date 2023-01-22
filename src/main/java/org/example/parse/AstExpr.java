@@ -80,14 +80,20 @@ public sealed interface AstExpr permits AstExpr.Atom, AstExpr.Binary, AstExpr.Bl
     record Function(
             Token nameToken,
             String name,
+            List<FuncParam> parameters,
             AstExpr.Block body
     ) implements AstItem {
     }
 
+    record FuncParam(
+            String name,
+            AstType type
+    ) {}
+
     record Let(
             Token nameToken,
             String name,
-            String type,
+            AstType type,
             AstExpr value
     ) implements AstItem {
     }

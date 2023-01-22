@@ -32,11 +32,11 @@ public class Parser {
         var items = new ArrayList<AstExpr>();
         tokenizer.expect(TokenType.LBRACE);
         while (tokenizer.hasNext()) {
-            items.add(parseExpr());
-            tokenizer.expect(TokenType.SEMICOLON);
             if (tokenizer.peek() == TokenType.RBRACE) {
                 break;
             }
+            items.add(parseExpr());
+            tokenizer.expect(TokenType.SEMICOLON);
         }
         tokenizer.expect(TokenType.RBRACE);
         return new AstExpr.Block(items);
@@ -96,20 +96,38 @@ public class Parser {
         tokenizer.expect(TokenType.K_FUNC);
         Token name = tokenizer.expect(TokenType.IDENTIFIER);
         tokenizer.expect(TokenType.LPAREN);
-        // TODO: Arguments
+        List<AstExpr.FuncParam> params = new ArrayList<>();
+        while (true) {
+            if (tokenizer.peek() == TokenType.RPAREN) {
+                break;
+            }
+            Token paramName = tokenizer.expect(TokenType.IDENTIFIER);
+            tokenizer.expect(TokenType.COLON);
+            AstType paramType = parseType();
+            params.add(new AstExpr.FuncParam(tokenizer.getSourceOf(paramName), paramType));
+
+            if (tokenizer.peek() == TokenType.RPAREN) {
+                break;
+            }
+            tokenizer.expect(TokenType.COMMA);
+        }
         tokenizer.expect(TokenType.RPAREN);
         AstExpr.Block body = parseBlock();
-        return new AstItem.Function(name, tokenizer.getSourceOf(name), body);
+        return new AstItem.Function(name, tokenizer.getSourceOf(name), params, body);
     }
 
     private AstItem.Let parseLet() {
         tokenizer.expect(TokenType.K_LET);
         Token name = tokenizer.expect(TokenType.IDENTIFIER);
         tokenizer.expect(TokenType.COLON);
-        Token type = tokenizer.expect(TokenType.IDENTIFIER);
+        AstType type = parseType();
         tokenizer.expect(TokenType.ASSIGN);
         AstExpr value = parseExpr();
-        return new AstItem.Let(name, tokenizer.getSourceOf(name), tokenizer.getSourceOf(type), value);
+        return new AstItem.Let(name, tokenizer.getSourceOf(name), type, value);
+    }
+
+    private AstType parseType() {
+        return new AstType.Identifier(tokenizer.getSourceOf(tokenizer.expect(TokenType.IDENTIFIER)));
     }
 
     private AstExpr parseParenExpr() {
