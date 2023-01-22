@@ -18,6 +18,11 @@ public class TypeCheckTest {
             let c: i32 = a + b;
             println(c);
             printlnBool(a+b == c);
+            printlnBool(true);
+            printlnBool(false);
+            printlnBool((1 == 2) || (2 == 3));
+            printlnBool((1 == 2) || true);
+            printlnBool((1 == 2) == false);
         }
         
         func emptyFunc() {}

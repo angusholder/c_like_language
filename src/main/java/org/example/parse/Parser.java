@@ -172,8 +172,16 @@ public class Parser {
                 }
                 return new AstExpr.Identifier(tokenizer.getSourceOf(ident));
             }
+            case K_TRUE -> {
+                tokenizer.next();
+                return new AstExpr.Boolean(true);
+            }
+            case K_FALSE -> {
+                tokenizer.next();
+                return new AstExpr.Boolean(false);
+            }
             default -> {
-                throw tokenizer.reportWrongTokenType(TokenType.LBRACE, TokenType.K_LET, TokenType.K_FUNC, TokenType.K_WHILE, TokenType.K_IF, TokenType.LPAREN, TokenType.NUMBER, TokenType.IDENTIFIER);
+                throw tokenizer.reportWrongTokenType(TokenType.LBRACE, TokenType.K_LET, TokenType.K_FUNC, TokenType.K_WHILE, TokenType.K_IF, TokenType.LPAREN, TokenType.NUMBER, TokenType.IDENTIFIER, TokenType.K_FALSE, TokenType.K_TRUE);
             }
         }
     }

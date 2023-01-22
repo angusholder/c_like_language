@@ -90,6 +90,9 @@ public class PrintAst {
             case AstExpr.Identifier identifier -> {
                 println("Identifier: " + identifier.text());
             }
+            case AstExpr.Boolean bool -> {
+                println(String.valueOf(bool.value()));
+            }
             case AstExpr.Function function -> {
                 println("Function: " + function.name());
                 indented(() -> {

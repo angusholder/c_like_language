@@ -11,6 +11,10 @@ public sealed interface AstExpr {
             String text
     ) implements AstExpr {}
 
+    record Boolean(
+            boolean value
+    ) implements AstExpr {}
+
     record Identifier(
             String text
     ) implements AstExpr {}

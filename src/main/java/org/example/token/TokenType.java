@@ -38,6 +38,8 @@ public enum TokenType {
     K_IF("if"),
     K_ELSE("else"),
     K_LET("let"),
+    K_TRUE("true"),
+    K_FALSE("false"),
     ;
 
     public final String repr;

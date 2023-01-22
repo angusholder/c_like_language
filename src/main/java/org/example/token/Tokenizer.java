@@ -262,6 +262,8 @@ public class Tokenizer {
             case "if" -> TokenType.K_IF;
             case "else" -> TokenType.K_ELSE;
             case "let" -> TokenType.K_LET;
+            case "true" -> TokenType.K_TRUE;
+            case "false" -> TokenType.K_FALSE;
             default -> TokenType.IDENTIFIER;
         };
     }

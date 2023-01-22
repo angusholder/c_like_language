@@ -64,6 +64,7 @@ public class TypeChecker {
                 // TODO: Support more than one number type
                 yield TypeInfo.I32;
             }
+            case AstExpr.Boolean ignored -> TypeInfo.BOOL;
             case AstExpr.Unary unary -> {
                 TypeInfo type = resolveExpr(unary.expr());
                 yield switch (unary.op()) {

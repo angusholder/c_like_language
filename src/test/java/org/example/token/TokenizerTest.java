@@ -24,7 +24,7 @@ public class TokenizerTest {
         ( ) { }
         && ||
         = ==
-        func while if else
+        func while if else true false
         """));
     }
 
