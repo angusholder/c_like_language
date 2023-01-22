@@ -15,10 +15,10 @@ public enum TokenType {
     OR("||"),
 
     ASSIGN("="),
-    EQUAL("=="),
+    EQUALS("=="),
 
     NOT("!"),
-    NOT_EQUAL("!="),
+    NOT_EQUALS("!="),
     LT_EQ("<="),
     LT("<"),
     GT_EQ(">="),

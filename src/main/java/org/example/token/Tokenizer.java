@@ -159,14 +159,14 @@ public class Tokenizer {
             }
             case '=' -> {
                 if (matchesChar('=')) {
-                    return makeToken(TokenType.EQUAL);
+                    return makeToken(TokenType.EQUALS);
                 } else {
                     return makeToken(TokenType.ASSIGN);
                 }
             }
             case '!' -> {
                 if (matchesChar('=')) {
-                    return makeToken(TokenType.NOT_EQUAL);
+                    return makeToken(TokenType.NOT_EQUALS);
                 } else {
                     return makeToken(TokenType.NOT);
                 }

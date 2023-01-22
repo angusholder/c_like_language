@@ -277,8 +277,8 @@ public class Parser {
         while (true) {
             BinaryOp op;
             switch (tokenizer.peek()) {
-                case EQUAL -> op = BinaryOp.EQUALS;
-                case NOT_EQUAL -> op = BinaryOp.NOT_EQUALS;
+                case EQUALS -> op = BinaryOp.EQUALS;
+                case NOT_EQUALS -> op = BinaryOp.NOT_EQUALS;
                 case LT_EQ -> op = BinaryOp.LT_EQ;
                 case LT -> op = BinaryOp.LT;
                 case GT_EQ -> op = BinaryOp.GT_EQ;
