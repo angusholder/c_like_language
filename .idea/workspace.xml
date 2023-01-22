@@ -4,14 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9fbefb33-9470-423d-8815-152a4155a674" name="Changes" comment="Implement printing the rest of the AST, include source location in error">
-      <change afterPath="$PROJECT_DIR$/src/test/java/org/example/token/ParserTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/parse/AstExpr.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/parse/AstExpr.java" afterDir="false" />
+    <list default="true" id="9fbefb33-9470-423d-8815-152a4155a674" name="Changes" comment="Implement call parsing, fix semicolon handling and block parsing">
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/parse/AstFile.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/parse/AstFile.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/org/example/parse/Parser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/parse/Parser.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/org/example/parse/PrintAst.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/parse/PrintAst.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/token/TokenType.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/token/TokenType.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/token/Tokenizer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/token/Tokenizer.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -164,7 +160,21 @@
       <option name="project" value="LOCAL" />
       <updated>1674398554186</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Implement call parsing, fix semicolon handling and block parsing">
+      <created>1674399784119</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1674399784119</updated>
+    </task>
+    <task id="LOCAL-00006" summary="Implement call parsing, fix semicolon handling and block parsing">
+      <created>1674399835459</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1674399835459</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -172,7 +182,8 @@
     <MESSAGE value="Tokenizer helper methods" />
     <MESSAGE value="Implement expression parsing, and tokenize more operators" />
     <MESSAGE value="Implement printing the rest of the AST, include source location in error" />
-    <option name="LAST_COMMIT_MESSAGE" value="Implement printing the rest of the AST, include source location in error" />
+    <MESSAGE value="Implement call parsing, fix semicolon handling and block parsing" />
+    <option name="LAST_COMMIT_MESSAGE" value="Implement call parsing, fix semicolon handling and block parsing" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

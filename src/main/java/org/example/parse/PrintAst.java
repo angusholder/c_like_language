@@ -25,6 +25,7 @@ public class PrintAst {
     }
 
     public void visit(AstFile file) {
+        println(file.file().name());
         indented(() -> {
             for (AstItem item : file.items()) {
                 visit(item);

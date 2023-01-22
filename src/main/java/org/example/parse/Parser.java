@@ -25,7 +25,7 @@ public class Parser {
         while (tokenizer.hasNext()) {
             items.add(parseItem());
         }
-        return new AstFile(items);
+        return new AstFile(tokenizer.getFile(), items);
     }
 
     public AstExpr.Block parseBlock() {
