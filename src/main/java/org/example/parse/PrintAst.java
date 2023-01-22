@@ -90,7 +90,7 @@ public class PrintAst {
             case AstExpr.Identifier identifier -> {
                 println("Identifier: " + identifier.text());
             }
-            case AstExpr.Item.Function function -> {
+            case AstExpr.Function function -> {
                 println("Function: " + function.name());
                 indented(() -> {
                     println("Params:");
@@ -109,7 +109,7 @@ public class PrintAst {
                     });
                 });
             }
-            case AstExpr.Item.Let let -> {
+            case AstExpr.Let let -> {
                 println("Let");
                 indented(() -> {
                     println(let.name());

@@ -52,7 +52,7 @@ public class Parser {
                 return parseFunction();
             }
             case K_LET -> {
-                AstExpr.Item expr = parseLet();
+                AstExpr.Let expr = parseLet();
                 if (semicolonTerminated) {
                     tokenizer.expect(TokenType.SEMICOLON);
                 }
@@ -76,7 +76,7 @@ public class Parser {
         AstExpr condition = parseParenExpr();
         AstExpr.Block thenBranch = parseBlock();
         List<AstExpr.ElseIf> elseIfs = new ArrayList<>();
-        AstExpr elseBranch = null;
+        AstExpr.Block elseBranch = null;
         while (tokenizer.matchConsume(TokenType.K_ELSE)) {
             if (tokenizer.matchConsume(TokenType.K_IF)) {
                 AstExpr elseifCond = parseParenExpr();
@@ -92,7 +92,7 @@ public class Parser {
         return new AstExpr.If(condition, thenBranch, elseIfs, elseBranch);
     }
 
-    private AstExpr.Item.Function parseFunction() {
+    private AstExpr.Function parseFunction() {
         tokenizer.expect(TokenType.K_FUNC);
         Token name = tokenizer.expect(TokenType.IDENTIFIER);
         tokenizer.expect(TokenType.LPAREN);
@@ -113,17 +113,17 @@ public class Parser {
         }
         tokenizer.expect(TokenType.RPAREN);
         AstExpr.Block body = parseBlock();
-        return new AstExpr.Item.Function(name, tokenizer.getSourceOf(name), params, body);
+        return new AstExpr.Function(name, tokenizer.getSourceOf(name), params, body);
     }
 
-    private AstExpr.Item.Let parseLet() {
+    private AstExpr.Let parseLet() {
         tokenizer.expect(TokenType.K_LET);
         Token name = tokenizer.expect(TokenType.IDENTIFIER);
         tokenizer.expect(TokenType.COLON);
         AstType type = parseType();
         tokenizer.expect(TokenType.ASSIGN);
         AstExpr value = parseExpr();
-        return new AstExpr.Item.Let(name, tokenizer.getSourceOf(name), type, value);
+        return new AstExpr.Let(name, tokenizer.getSourceOf(name), type, value);
     }
 
     private AstType parseType() {

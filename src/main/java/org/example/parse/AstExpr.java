@@ -60,15 +60,15 @@ public sealed interface AstExpr {
 
     record If(
             AstExpr condition,
-            AstExpr thenBranch,
+            AstExpr.Block thenBranch,
             List<ElseIf> elseIfs,
             @Nullable
-            AstExpr elseBranch
+            AstExpr.Block elseBranch
     ) implements AstExpr {}
 
     record ElseIf(
             AstExpr condition,
-            AstExpr thenBranch
+            AstExpr.Block thenBranch
     ) {}
 
     record While(
@@ -102,7 +102,7 @@ public sealed interface AstExpr {
     }
 
     record Assign(
-            String name,
-            AstExpr value
+            String lhs,
+            AstExpr rhs
     ) implements AstExpr {}
 }
