@@ -1,5 +1,7 @@
 package org.example.parse;
 
+import org.example.parse.AstExpr.BinaryOp;
+import org.example.parse.AstExpr.UnaryOp;
 import org.example.token.Token;
 import org.example.token.TokenType;
 import org.example.token.Tokenizer;
@@ -107,6 +109,11 @@ public class Parser {
     }
 
     private AstExpr parseExpr() {
+        return exprOr();
+    }
+
+    // atom :: STRING | NUMBER | IDENTIFIER | LPAREN expr RPAREN | IF_STMT | WHILE_STMT | BLOCK | LET_STMT | FUNC_STMT ;
+    private AstExpr exprAtom() {
         switch (tokenizer.peek()) {
             case LBRACE -> {
                 return parseBlock();
@@ -120,9 +127,131 @@ public class Parser {
             case K_IF -> {
                 return parseIf();
             }
+            case LPAREN -> {
+                return parseParenExpr();
+            }
+            case NUMBER -> {
+                var token = tokenizer.next();
+                return new AstExpr.Number(tokenizer.getSourceOf(token));
+            }
+            case IDENTIFIER -> {
+                var token = tokenizer.next();
+                return new AstExpr.Identifier(tokenizer.getSourceOf(token));
+            }
             default -> {
-                return new ExpressionParser(this).parse();
+                throw tokenizer.reportWrongTokenType(TokenType.LBRACE, TokenType.K_LET, TokenType.K_FUNC, TokenType.K_WHILE, TokenType.K_IF, TokenType.LPAREN, TokenType.NUMBER, TokenType.IDENTIFIER);
             }
         }
     }
+
+    // unary :: (MINUS | NOT) unary | atom ;
+    private AstExpr exprUnary() {
+        UnaryOp op;
+        switch (tokenizer.peek()) {
+            case MINUS -> op = UnaryOp.NEG;
+            case NOT -> op = UnaryOp.NOT;
+            default -> {
+                return exprAtom();
+            }
+        }
+        tokenizer.next();
+
+        AstExpr expr = exprUnary();
+        return new AstExpr.Unary(op, expr);
+    }
+
+    // mul :: unary ((STAR | DIVIDE) unary)* ;
+    private AstExpr exprMul() {
+        AstExpr expr = exprUnary();
+        while (true) {
+            BinaryOp op;
+            switch (tokenizer.peek()) {
+                case STAR -> op = BinaryOp.MUL;
+                case DIVIDE -> op = BinaryOp.DIV;
+                default -> {
+                    return expr;
+                }
+            };
+            tokenizer.next();
+
+            AstExpr right = exprUnary();
+            expr = new AstExpr.Binary(expr, op, right);
+        }
+    }
+
+    // add :: mul ((PLUS | MINUS) mul)* ;
+    private AstExpr exprAdd() {
+        AstExpr expr = exprMul();
+        while (true) {
+            BinaryOp op;
+            switch (tokenizer.peek()) {
+                case PLUS -> op = BinaryOp.ADD;
+                case MINUS -> op = BinaryOp.SUB;
+                default -> {
+                    return expr;
+                }
+            };
+            tokenizer.next();
+
+            AstExpr right = exprMul();
+            expr = new AstExpr.Binary(expr, op, right);
+        }
+    }
+
+    // comparison :: add ((EQUAL | NOT_EQUAL) add)* ;
+    private AstExpr exprComparison() {
+        AstExpr expr = exprAdd();
+        while (true) {
+            BinaryOp op;
+            switch (tokenizer.peek()) {
+                case EQUAL -> op = BinaryOp.EQUALS;
+                case NOT_EQUAL -> op = BinaryOp.NOT_EQUALS;
+                case LT_EQ -> op = BinaryOp.LT_EQ;
+                case LT -> op = BinaryOp.LT;
+                case GT_EQ -> op = BinaryOp.GT_EQ;
+                case GT -> op = BinaryOp.GT;
+                default -> {
+                    return expr;
+                }
+            };
+            tokenizer.next();
+
+            AstExpr right = exprAdd();
+            expr = new AstExpr.Binary(expr, op, right);
+        }
+    }
+
+    // and :: comparison (AND comparison)* ;
+    private AstExpr exprAnd() {
+        AstExpr expr = exprComparison();
+        while (tokenizer.matchConsume(TokenType.AND)) {
+            AstExpr right = exprComparison();
+            expr = new AstExpr.Binary(expr, BinaryOp.AND, right);
+        }
+        return expr;
+    }
+
+    // or :: and (OR and)* ;
+    private AstExpr exprOr() {
+        AstExpr expr = exprAnd();
+        while (tokenizer.matchConsume(TokenType.OR)) {
+            AstExpr right = exprAnd();
+            expr = new AstExpr.Binary(expr, BinaryOp.OR, right);
+        }
+        return expr;
+    }
+
+    /*
+    Expression grammar:
+
+    atom :: STRING | NUMBER | IDENTIFIER | LPAREN expr RPAREN | IF_STMT | WHILE_STMT | BLOCK | LET_STMT | FUNC_STMT ;
+    unary :: (MINUS | NOT) unary | atom ;
+    mul :: unary ((STAR | DIVIDE) unary)* ;
+    add :: mul ((PLUS | MINUS) mul)* ;
+    comparison :: add ((EQUAL | NOT_EQUAL) add)* ;
+    and :: comparison (AND comparison)* ;
+    or :: and (OR and)* ;
+
+    expr :: or ;
+     */
 }

@@ -1,10 +1,11 @@
 package org.example.parse;
 
+import org.example.token.Token;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-public sealed interface AstExpr permits AstExpr.Atom, AstExpr.Binary, AstExpr.Block, AstExpr.Call, AstExpr.If, AstExpr.Item, AstExpr.Unary, AstExpr.While, AstItem {
+public sealed interface AstExpr permits AstExpr.Atom, AstExpr.Binary, AstExpr.Block, AstExpr.Call, AstExpr.If, AstExpr.Unary, AstExpr.While, AstItem {
     sealed interface Atom extends AstExpr { }
 
     record Number(
@@ -26,10 +27,17 @@ public sealed interface AstExpr permits AstExpr.Atom, AstExpr.Binary, AstExpr.Bl
         SUB,
         MUL,
         DIV,
-        EQ,
 
         AND,
         OR,
+
+        EQUALS,
+        NOT_EQUALS,
+
+        LT_EQ,
+        LT,
+        GT_EQ,
+        GT,
     }
 
     record Unary(
@@ -39,15 +47,12 @@ public sealed interface AstExpr permits AstExpr.Atom, AstExpr.Binary, AstExpr.Bl
 
     enum UnaryOp {
         NOT,
+        NEG,
     }
 
     record Call(
             String callee,
             List<AstExpr> arguments
-    ) implements AstExpr {}
-
-    record Item(
-            AstItem item
     ) implements AstExpr {}
 
     record Block(
@@ -71,4 +76,19 @@ public sealed interface AstExpr permits AstExpr.Atom, AstExpr.Binary, AstExpr.Bl
             AstExpr condition,
             AstExpr.Block body
     ) implements AstExpr {}
+
+    record Function(
+            Token nameToken,
+            String name,
+            AstExpr.Block body
+    ) implements AstItem {
+    }
+
+    record Let(
+            Token nameToken,
+            String name,
+            Token type,
+            AstExpr value
+    ) implements AstItem {
+    }
 }

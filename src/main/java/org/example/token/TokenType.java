@@ -17,6 +17,13 @@ public enum TokenType {
     ASSIGN("="),
     EQUAL("=="),
 
+    NOT("!"),
+    NOT_EQUAL("!="),
+    LT_EQ("<="),
+    LT("<"),
+    GT_EQ(">="),
+    GT(">"),
+
     COLON(":"),
     SEMICOLON(";"),
 

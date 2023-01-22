@@ -30,45 +30,28 @@ public class PrintAst {
         });
     }
 
-    public void visit(AstItem item) {
-        indented(() -> {
-            switch (item) {
-                case AstItem.Function function -> {
-                    println("Function: " + function.name());
-                    indented(() -> {
-                        println("Args: []");
-                        println("Body:");
-
-                        indented(() -> {
-                            for (AstExpr bodyItem : function.body().items()) {
-                                visit(bodyItem);
-                            }
-                        });
-                    });
-                }
-                case AstItem.Let let -> {
-                    println("Let " + let.name());
-                }
-            }
-        });
-    }
-
-    private void visit(AstExpr bodyItem) {
+    public void visit(AstExpr bodyItem) {
         switch (bodyItem) {
             case AstExpr.Binary binary -> {
-                throw new UnsupportedOperationException();
+                println(binary.op().name());
+                indented(() -> {
+                    visit(binary.left());
+                    visit(binary.right());
+                });
             }
             case AstExpr.Block block -> {
-                throw new UnsupportedOperationException();
+                println("Block:");
+                indented(() -> {
+                    for (AstExpr item : block.items()) {
+                        visit(item);
+                    }
+                });
             }
             case AstExpr.Call call -> {
                 throw new UnsupportedOperationException();
             }
             case AstExpr.If anIf -> {
                 throw new UnsupportedOperationException();
-            }
-            case AstExpr.Item item -> {
-                visit(item.item());
             }
             case AstExpr.Unary unary -> {
                 throw new UnsupportedOperationException();
@@ -83,10 +66,20 @@ public class PrintAst {
                 visit(atom);
             }
             case AstItem.Function function -> {
-                throw new UnsupportedOperationException();
+                println("Function: " + function.name());
+                indented(() -> {
+                    println("Args: []");
+                    println("Body:");
+
+                    indented(() -> {
+                        for (AstExpr expr : function.body().items()) {
+                            visit(expr);
+                        }
+                    });
+                });
             }
             case AstItem.Let let -> {
-                throw new UnsupportedOperationException();
+                println("Let " + let.name());
             }
         }
     }

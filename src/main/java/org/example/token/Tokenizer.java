@@ -153,6 +153,27 @@ public class Tokenizer {
                     return makeToken(TokenType.ASSIGN);
                 }
             }
+            case '!' -> {
+                if (matchesChar('=')) {
+                    return makeToken(TokenType.NOT_EQUAL);
+                } else {
+                    return makeToken(TokenType.NOT);
+                }
+            }
+            case '<' -> {
+                if (matchesChar('=')) {
+                    return makeToken(TokenType.LT_EQ);
+                } else {
+                    return makeToken(TokenType.LT);
+                }
+            }
+            case '>' -> {
+                if (matchesChar('=')) {
+                    return makeToken(TokenType.GT_EQ);
+                } else {
+                    return makeToken(TokenType.GT);
+                }
+            }
             default -> {
                 if (Character.isJavaIdentifierStart(cur)) {
                     while (Character.isJavaIdentifierPart(peekChar())) {
