@@ -5,7 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 import java.util.stream.Collectors;
 
 public class Tokenizer {
@@ -27,7 +27,12 @@ public class Tokenizer {
     }
 
     @NotNull
-    public Token peek() {
+    public TokenType peek() {
+        return peekToken().type();
+    }
+
+    @NotNull
+    public Token peekToken() {
         if (peeked != null) {
             return peeked;
         }
@@ -37,12 +42,12 @@ public class Tokenizer {
     }
 
     public boolean hasNext() {
-        return peek().type() != TokenType.EOF;
+        return peek() != TokenType.EOF;
     }
 
     @NotNull
     public Token next() {
-        Token result = peek();
+        Token result = peekToken();
         peeked = null;
         return result;
     }
@@ -50,28 +55,28 @@ public class Tokenizer {
     public Token expect(TokenType type) {
         Token token = next();
         if (token.type() != type) {
-            throw reportWrongTokenType(type, token);
+            throw reportWrongTokenType(token, type);
         }
         return token;
     }
 
     @NotNull
-    public static WrongTokenTypeException reportWrongTokenType(TokenType expectedType, Token token) {
-        return new WrongTokenTypeException(token, "Got " + token.type() + ", expected " + expectedType.repr);
+    public WrongTokenTypeException reportWrongTokenType(Token token, TokenType... expectedTypes) {
+        if (expectedTypes.length == 1) {
+            return new WrongTokenTypeException(token, "Got " + token.type() + ", expected " + expectedTypes[0].repr);
+        } else {
+            String expected = Arrays.stream(expectedTypes).map(t -> t.repr).collect(Collectors.joining(", "));
+            return new WrongTokenTypeException(token, "Got " + token.type() + ", expected one of [" + expected + "]");
+        }
     }
 
     @NotNull
-    public static WrongTokenTypeException reportWrongTokenType(List<TokenType> expectedTypes, Token token) {
-        if (expectedTypes.size() == 1) {
-            return reportWrongTokenType(expectedTypes.get(0), token);
-        }
-
-        String expected = expectedTypes.stream().map(t -> t.repr).collect(Collectors.joining(", "));
-        return new WrongTokenTypeException(token, "Got " + token.type() + ", expected one of [" + expected + "]");
+    public WrongTokenTypeException reportWrongTokenType(TokenType... expectedTypes) {
+        return reportWrongTokenType(peekToken(), expectedTypes);
     }
 
-    public boolean matches(TokenType type) {
-        if (peek().type() == type) {
+    public boolean matchConsume(TokenType type) {
+        if (peek() == type) {
             next();
             return true;
         } else {
@@ -257,7 +262,7 @@ public class Tokenizer {
     @NotNull
     public ArrayList<Token> tokenizeAll() {
         var tokens = new ArrayList<Token>();
-        while (this.peek().type() != TokenType.EOF) {
+        while (this.peek() != TokenType.EOF) {
             tokens.add(this.next());
         }
         return tokens;

@@ -37,19 +37,15 @@ public class Parser {
     }
 
     public AstItem parseItem() {
-        Token token = tokenizer.peek();
-        switch (token.type()) {
+        switch (tokenizer.peek()) {
             case K_FUNC -> {
                 return parseFunction();
             }
             case K_LET -> {
                 return parseLet();
             }
-            case EOF -> {
-                throw new IllegalArgumentException("Unexpected EOF");
-            }
             default -> {
-                throw new IllegalArgumentException("Unexpected token: " + token);
+                throw tokenizer.reportWrongTokenType(TokenType.K_FUNC, TokenType.K_LET);
             }
         }
     }
@@ -67,16 +63,16 @@ public class Parser {
         AstExpr.Block thenBranch = parseBlock();
         List<AstExpr.ElseIf> elseIfs = new ArrayList<>();
         AstExpr elseBranch = null;
-        while (tokenizer.matches(TokenType.K_ELSE)) {
-            if (tokenizer.matches(TokenType.K_IF)) {
+        while (tokenizer.matchConsume(TokenType.K_ELSE)) {
+            if (tokenizer.matchConsume(TokenType.K_IF)) {
                 AstExpr elseifCond = parseParenExpr();
                 AstExpr.Block elseifBody = parseBlock();
                 elseIfs.add(new AstExpr.ElseIf(elseifCond, elseifBody));
-            } else if (tokenizer.peek().type() == TokenType.LBRACE) {
+            } else if (tokenizer.peek() == TokenType.LBRACE) {
                 elseBranch = parseBlock();
                 break;
             } else {
-                throw Tokenizer.reportWrongTokenType(List.of(TokenType.K_IF, TokenType.LBRACE), tokenizer.peek());
+                throw tokenizer.reportWrongTokenType(TokenType.K_IF, TokenType.LBRACE);
             }
         }
         return new AstExpr.If(condition, thenBranch, elseIfs, elseBranch);
@@ -111,7 +107,7 @@ public class Parser {
     }
 
     private AstExpr parseExpr() {
-        switch (tokenizer.peek().type()) {
+        switch (tokenizer.peek()) {
             case LBRACE -> {
                 return parseBlock();
             }
