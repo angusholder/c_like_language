@@ -83,6 +83,8 @@ public sealed interface AstExpr {
     record Function(
             Token nameToken,
             String name,
+            @Nullable
+            AstType returnType,
             List<FuncParam> parameters,
             AstExpr.Block body
     ) implements Item {

@@ -10,7 +10,7 @@ public class ParserTest {
     @Test
     public void test() {
         printParseTree("""
-        func main() {
+        func main() -> int {
             let a: int = 1;
             let b: int = 2;
             let c: int = a + b;
@@ -18,7 +18,7 @@ public class ParserTest {
             println(c == a+b);
         }
         
-        func emptyFunc() {}
+        func emptyFunc() -> void {}
         func oneParam(a: int) {}
         func oneParamCommad(a: int,) {}
         func twoParams(a: int, b: int) {}

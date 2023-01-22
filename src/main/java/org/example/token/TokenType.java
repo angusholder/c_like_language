@@ -33,6 +33,8 @@ public enum TokenType {
     LBRACE("{"),
     RBRACE("}"),
 
+    ARROW("->"),
+
     K_FUNC("func"),
     K_WHILE("while"),
     K_IF("if"),

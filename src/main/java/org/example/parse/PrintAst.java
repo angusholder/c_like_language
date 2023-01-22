@@ -96,6 +96,9 @@ public class PrintAst {
             case AstExpr.Function function -> {
                 println("Function: " + function.name());
                 indented(() -> {
+                    if (function.returnType() != null) {
+                        println("Return type: " + function.returnType());
+                    }
                     println("Params:");
                     indented(() -> {
                         for (var param : function.parameters()) {

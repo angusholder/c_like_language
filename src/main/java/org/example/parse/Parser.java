@@ -106,8 +106,12 @@ public class Parser {
             tokenizer.expect(TokenType.COMMA);
         }
         tokenizer.expect(TokenType.RPAREN);
+        AstType returnType = null;
+        if (tokenizer.matchConsume(TokenType.ARROW)) {
+            returnType = parseType();
+        }
         AstExpr.Block body = parseBlock();
-        return new AstExpr.Function(name, tokenizer.getSourceOf(name), params, body);
+        return new AstExpr.Function(name, tokenizer.getSourceOf(name), returnType, params, body);
     }
 
     private AstExpr.Let parseLet() {

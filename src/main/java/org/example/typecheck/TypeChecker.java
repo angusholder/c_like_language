@@ -191,8 +191,7 @@ public class TypeChecker {
             params.add(new Symbol.FunctionParam(param.name(), typeInfo));
         }
 
-        // TODO: Support return types and return statement
-        TypeInfo returnType = TypeInfo.VOID;
+        TypeInfo returnType = table.resolveType(function.returnType());
         table.addFunctionSymbol(function, params, returnType);
     }
 

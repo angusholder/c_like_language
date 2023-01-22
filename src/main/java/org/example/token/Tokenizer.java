@@ -110,7 +110,11 @@ public class Tokenizer {
                 return makeToken(TokenType.PLUS);
             }
             case '-' -> {
-                return makeToken(TokenType.MINUS);
+                if (matchesChar('>')) {
+                    return makeToken(TokenType.ARROW);
+                } else {
+                    return makeToken(TokenType.MINUS);
+                }
             }
             case '*' -> {
                 return makeToken(TokenType.STAR);
