@@ -92,6 +92,21 @@ public class TypeChecker {
                 table.addVariableSymbol(let.name(), type);
                 yield TypeInfo.VOID;
             }
+            case AstExpr.Return ret -> {
+                TypeInfo returnType;
+                if (ret.returnValue() != null) {
+                    returnType = resolveExpr(ret.returnValue());
+                } else {
+                    returnType = TypeInfo.VOID;
+                }
+                Symbol.Function currentFunction = table.getCurrentFunction();
+                if (currentFunction == null) {
+                    throw new IllegalStateException("Return statement outside of function");
+                }
+                checkSame(currentFunction.returnType(), returnType);
+                // A return expression has type void. The return value is checked elsewhere.
+                yield TypeInfo.VOID;
+            }
         };
     }
 
@@ -191,7 +206,12 @@ public class TypeChecker {
             params.add(new Symbol.FunctionParam(param.name(), typeInfo));
         }
 
-        TypeInfo returnType = table.resolveType(function.returnType());
+        TypeInfo returnType;
+        if (function.returnType() != null) {
+            returnType = table.resolveType(function.returnType());
+        } else {
+            returnType = TypeInfo.VOID;
+        }
         table.addFunctionSymbol(function, params, returnType);
     }
 
@@ -199,9 +219,7 @@ public class TypeChecker {
     private TypeInfo checkFunctionBody(AstExpr.Function function) {
         table.pushScope();
         Symbol.Function funcSymbol = table.lookupFunction(function);
-        for (Symbol.FunctionParam param : funcSymbol.params()) {
-            table.addParamSymbol(param.name(), param.type());
-        }
+        table.setFunctionScope(funcSymbol);
         for (AstExpr item : function.body().items()) {
             resolveExpr(item);
         }

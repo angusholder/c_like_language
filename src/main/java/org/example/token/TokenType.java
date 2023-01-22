@@ -42,6 +42,7 @@ public enum TokenType {
     K_LET("let"),
     K_TRUE("true"),
     K_FALSE("false"),
+    K_RETURN("return"),
     ;
 
     public final String repr;

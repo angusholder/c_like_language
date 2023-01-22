@@ -181,8 +181,16 @@ public class Parser {
                 tokenizer.next();
                 return new AstExpr.Boolean(false);
             }
+            case K_RETURN -> {
+                tokenizer.next();
+                AstExpr retValue = null;
+                if (tokenizer.peek() != TokenType.SEMICOLON) {
+                    retValue = parseExpr();
+                }
+                return new AstExpr.Return(retValue);
+            }
             default -> {
-                throw tokenizer.reportWrongTokenType(TokenType.LBRACE, TokenType.K_LET, TokenType.K_FUNC, TokenType.K_WHILE, TokenType.K_IF, TokenType.LPAREN, TokenType.NUMBER, TokenType.IDENTIFIER, TokenType.K_FALSE, TokenType.K_TRUE);
+                throw tokenizer.reportWrongTokenType(TokenType.LBRACE, TokenType.K_LET, TokenType.K_FUNC, TokenType.K_WHILE, TokenType.K_IF, TokenType.LPAREN, TokenType.NUMBER, TokenType.IDENTIFIER, TokenType.K_FALSE, TokenType.K_TRUE, TokenType.K_RETURN);
             }
         }
     }

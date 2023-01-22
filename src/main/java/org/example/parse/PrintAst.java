@@ -130,6 +130,12 @@ public class PrintAst {
                     visit(assign.rhs());
                 });
             }
+            case AstExpr.Return ret -> {
+                println("return");
+                if (ret.returnValue() != null) {
+                    indented(() -> visit(ret.returnValue()));
+                }
+            }
         }
     }
 

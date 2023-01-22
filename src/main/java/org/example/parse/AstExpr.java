@@ -111,4 +111,9 @@ public sealed interface AstExpr {
             String lhs,
             AstExpr rhs
     ) implements AstExpr {}
+
+    record Return(
+            @Nullable
+            AstExpr returnValue
+    ) implements AstExpr {}
 }

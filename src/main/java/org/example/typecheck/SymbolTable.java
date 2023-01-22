@@ -29,6 +29,8 @@ public class SymbolTable {
         final Map<String, TypeInfo> typesNamespace = new LinkedHashMap<>();
         // TODO: Separate symbol list for functions?
         final Map<String, Symbol> valuesNamespace = new LinkedHashMap<>();
+        @Nullable
+        Symbol.Function currentFunction = null;
 
         public static Scope createGlobal() {
             Scope globalScope = new Scope();
@@ -52,6 +54,25 @@ public class SymbolTable {
         scopes.remove(scopes.size() - 1);
     }
 
+    public void setFunctionScope(Symbol.Function function) {
+        Scope scope = getCurrentScope();
+        if (scope == globalScope) {
+            throw new IllegalStateException("Cannot set function scope in global scope");
+        }
+        if (scope.currentFunction != null) {
+            throw new IllegalStateException("This scope already belongs to a function: " + scope.currentFunction);
+        }
+        scope.currentFunction = function;
+        for (Symbol.FunctionParam param : function.params()) {
+            addParamSymbol(param.name(), param.type());
+        }
+    }
+
+    @Nullable
+    public Symbol.Function getCurrentFunction() {
+        return getCurrentScope().currentFunction;
+    }
+
     @NotNull
     private TypeInfo lookupType(String name) {
         for (int i = scopes.size() - 1; i >= 0; i--) {
@@ -66,7 +87,7 @@ public class SymbolTable {
     }
 
     @NotNull
-    public TypeInfo resolveType(AstType type) {
+    public TypeInfo resolveType(@NotNull AstType type) {
         TypeInfo resolved = resolvedTypeRefs.get(type);
         if (resolved != null) {
             return resolved;
@@ -106,7 +127,7 @@ public class SymbolTable {
         if (symbol instanceof Symbol.Value value) {
             return value;
         }
-        throw new IllegalArgumentException("Not a value: " + name);
+        throw new IllegalArgumentException("Not a returnValue: " + name);
     }
 
     @NotNull
