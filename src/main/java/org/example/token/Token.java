@@ -8,6 +8,12 @@ public record Token(
         int startOffset,
         int endOffset
 ) {
+    public Token {
+        if (startOffset > endOffset) {
+            throw new IllegalArgumentException("startOffset > endOffset");
+        }
+    }
+
     @Override
     public String toString() {
         return "Token[" + type + "]";

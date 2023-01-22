@@ -30,7 +30,7 @@ public class Parser {
 
     public AstExpr.Block parseBlock() {
         var items = new ArrayList<AstExpr>();
-        tokenizer.expect(TokenType.LBRACE);
+        var lbraceToken = tokenizer.expect(TokenType.LBRACE);
         while (tokenizer.hasNext()) {
             if (tokenizer.peek() == TokenType.RBRACE) {
                 break;
@@ -38,8 +38,8 @@ public class Parser {
             items.add(parseExpr());
             tokenizer.expect(TokenType.SEMICOLON);
         }
-        tokenizer.expect(TokenType.RBRACE);
-        return new AstExpr.Block(items);
+        var rbraceToken = tokenizer.expect(TokenType.RBRACE);
+        return new AstExpr.Block(items, lbraceToken, rbraceToken);
     }
 
     private AstExpr.Item parseTopLevelItem() {
@@ -59,14 +59,14 @@ public class Parser {
     }
 
     private AstExpr.While parseWhile() {
-        tokenizer.expect(TokenType.K_WHILE);
+        var whileToken = tokenizer.expect(TokenType.K_WHILE);
         AstExpr condition = parseParenExpr();
         AstExpr.Block body = parseBlock();
-        return new AstExpr.While(condition, body);
+        return new AstExpr.While(condition, body, whileToken);
     }
 
     private AstExpr.If parseIf() {
-        tokenizer.expect(TokenType.K_IF);
+        var ifToken = tokenizer.expect(TokenType.K_IF);
         AstExpr condition = parseParenExpr();
         AstExpr.Block thenBranch = parseBlock();
         List<AstExpr.ElseIf> elseIfs = new ArrayList<>();
@@ -83,11 +83,11 @@ public class Parser {
                 throw tokenizer.reportWrongTokenType(TokenType.K_IF, TokenType.LBRACE);
             }
         }
-        return new AstExpr.If(condition, thenBranch, elseIfs, elseBranch);
+        return new AstExpr.If(condition, thenBranch, elseIfs, elseBranch, ifToken);
     }
 
     private AstExpr.Function parseFunction() {
-        tokenizer.expect(TokenType.K_FUNC);
+        var funcToken = tokenizer.expect(TokenType.K_FUNC);
         Token name = tokenizer.expect(TokenType.IDENTIFIER);
         tokenizer.expect(TokenType.LPAREN);
         List<AstExpr.FuncParam> params = new ArrayList<>();
@@ -111,17 +111,17 @@ public class Parser {
             returnType = parseType();
         }
         AstExpr.Block body = parseBlock();
-        return new AstExpr.Function(name, tokenizer.getSourceOf(name), returnType, params, body);
+        return new AstExpr.Function(name, tokenizer.getSourceOf(name), returnType, params, body, funcToken);
     }
 
     private AstExpr.Let parseLet() {
-        tokenizer.expect(TokenType.K_LET);
+        var letToken = tokenizer.expect(TokenType.K_LET);
         Token name = tokenizer.expect(TokenType.IDENTIFIER);
         tokenizer.expect(TokenType.COLON);
         AstType type = parseType();
         tokenizer.expect(TokenType.ASSIGN);
         AstExpr value = parseExpr();
-        return new AstExpr.Let(name, tokenizer.getSourceOf(name), type, value);
+        return new AstExpr.Let(name, tokenizer.getSourceOf(name), type, value, letToken);
     }
 
     private AstType parseType() {
@@ -161,7 +161,7 @@ public class Parser {
             }
             case NUMBER -> {
                 var token = tokenizer.next();
-                return new AstExpr.Number(tokenizer.getSourceOf(token));
+                return new AstExpr.Number(tokenizer.getSourceOf(token), token);
             }
             case IDENTIFIER -> {
                 Token ident = tokenizer.next();
@@ -171,23 +171,23 @@ public class Parser {
                 if (tokenizer.peek() == TokenType.ASSIGN) {
                     return parseAssign(ident);
                 }
-                return new AstExpr.Identifier(tokenizer.getSourceOf(ident));
+                return new AstExpr.Identifier(tokenizer.getSourceOf(ident), ident);
             }
             case K_TRUE -> {
-                tokenizer.next();
-                return new AstExpr.Boolean(true);
+                var token = tokenizer.next();
+                return new AstExpr.Boolean(true, token);
             }
             case K_FALSE -> {
-                tokenizer.next();
-                return new AstExpr.Boolean(false);
+                var token = tokenizer.next();
+                return new AstExpr.Boolean(false, token);
             }
             case K_RETURN -> {
-                tokenizer.next();
+                var returnToken = tokenizer.next();
                 AstExpr retValue = null;
                 if (tokenizer.peek() != TokenType.SEMICOLON) {
                     retValue = parseExpr();
                 }
-                return new AstExpr.Return(retValue);
+                return new AstExpr.Return(retValue, returnToken);
             }
             default -> {
                 throw tokenizer.reportWrongTokenType(TokenType.LBRACE, TokenType.K_LET, TokenType.K_FUNC, TokenType.K_WHILE, TokenType.K_IF, TokenType.LPAREN, TokenType.NUMBER, TokenType.IDENTIFIER, TokenType.K_FALSE, TokenType.K_TRUE, TokenType.K_RETURN);
@@ -195,10 +195,10 @@ public class Parser {
         }
     }
 
-    private AstExpr parseAssign(Token ident) {
+    private AstExpr parseAssign(Token lhs) {
         tokenizer.expect(TokenType.ASSIGN);
         AstExpr value = parseExpr();
-        return new AstExpr.Assign(tokenizer.getSourceOf(ident), value);
+        return new AstExpr.Assign(tokenizer.getSourceOf(lhs), value, lhs);
     }
 
     private AstExpr parseCall(Token name) {
@@ -217,8 +217,8 @@ public class Parser {
                 break;
             }
         }
-        tokenizer.expect(TokenType.RPAREN);
-        return new AstExpr.Call(tokenizer.getSourceOf(name), args);
+        var closeParenToken = tokenizer.expect(TokenType.RPAREN);
+        return new AstExpr.Call(tokenizer.getSourceOf(name), args, name, closeParenToken);
     }
 
     private AstExpr exprUnary() {
@@ -230,10 +230,10 @@ public class Parser {
                 return exprAtom();
             }
         }
-        tokenizer.next();
+        var opToken = tokenizer.next();
 
         AstExpr expr = exprUnary();
-        return new AstExpr.Unary(op, expr);
+        return new AstExpr.Unary(op, expr, opToken);
     }
 
     private AstExpr exprMul() {

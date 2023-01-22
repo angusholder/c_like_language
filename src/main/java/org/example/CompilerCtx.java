@@ -1,5 +1,6 @@
 package org.example;
 
+import org.example.parse.AstExpr;
 import org.example.parse.Parser;
 import org.example.token.SourceLoc;
 import org.example.token.SourceSpan;
@@ -78,6 +79,11 @@ public class CompilerCtx {
 
     public SourceSpan getSourceSpan(Token token) {
         return getSourceSpan(token.fileUid(), token.startOffset(), token.endOffset());
+    }
+
+    public SourceSpan getSourceSpan(AstExpr expr) {
+        AstExpr.TokenRange range = expr.getTokenRange();
+        return getSourceSpan(range.fileUid(), range.startOffset(), range.endOffset());
     }
 
     public FileInfo getFile(int fileUid) {
