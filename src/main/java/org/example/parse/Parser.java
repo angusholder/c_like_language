@@ -97,7 +97,7 @@ public class Parser {
             }
             Token paramName = tokenizer.expect(TokenType.IDENTIFIER);
             tokenizer.expect(TokenType.COLON);
-            AstType paramType = parseType();
+            TypeExpr paramType = parseType();
             params.add(new Expr.FuncParam(tokenizer.getSourceOf(paramName), paramType));
 
             if (tokenizer.peek() == TokenType.RPAREN) {
@@ -106,7 +106,7 @@ public class Parser {
             tokenizer.expect(TokenType.COMMA);
         }
         tokenizer.expect(TokenType.RPAREN);
-        AstType returnType = null;
+        TypeExpr returnType = null;
         if (tokenizer.matchConsume(TokenType.ARROW)) {
             returnType = parseType();
         }
@@ -118,14 +118,14 @@ public class Parser {
         var letToken = tokenizer.expect(TokenType.K_LET);
         Token name = tokenizer.expect(TokenType.IDENTIFIER);
         tokenizer.expect(TokenType.COLON);
-        AstType type = parseType();
+        TypeExpr type = parseType();
         tokenizer.expect(TokenType.ASSIGN);
         Expr value = parseExpr();
         return new Expr.Let(name, tokenizer.getSourceOf(name), type, value, letToken);
     }
 
-    private AstType parseType() {
-        return new AstType.Identifier(tokenizer.getSourceOf(tokenizer.expect(TokenType.IDENTIFIER)));
+    private TypeExpr parseType() {
+        return new TypeExpr.Identifier(tokenizer.getSourceOf(tokenizer.expect(TokenType.IDENTIFIER)));
     }
 
     private Expr parseParenExpr() {

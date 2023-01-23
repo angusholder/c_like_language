@@ -1,7 +1,7 @@
 package org.example.typecheck;
 
 import org.example.parse.Expr;
-import org.example.parse.AstType;
+import org.example.parse.TypeExpr;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -18,7 +18,7 @@ public class SymbolTable {
     private final List<Scope> scopes = new ArrayList<>();
     private final IdentityHashMap<Expr, TypeInfo> resolvedExprTypes = new IdentityHashMap<>();
     private final IdentityHashMap<Expr.Call, Symbol.Function> resolvedCallSites = new IdentityHashMap<>();
-    private final IdentityHashMap<AstType, TypeInfo> resolvedTypeRefs = new IdentityHashMap<>();
+    private final IdentityHashMap<TypeExpr, TypeInfo> resolvedTypeRefs = new IdentityHashMap<>();
     private final IdentityHashMap<Expr.Function, Symbol.Function> resolvedFunctions = new IdentityHashMap<>();
 
     public SymbolTable() {
@@ -87,20 +87,20 @@ public class SymbolTable {
     }
 
     @NotNull
-    public TypeInfo resolveType(@NotNull AstType type) {
+    public TypeInfo resolveType(@NotNull TypeExpr type) {
         TypeInfo resolved = resolvedTypeRefs.get(type);
         if (resolved != null) {
             return resolved;
         }
         resolved = switch (type) {
-            case AstType.Identifier ident -> lookupType(ident.name());
+            case TypeExpr.Identifier ident -> lookupType(ident.name());
         };
         resolvedTypeRefs.put(type, resolved);
         return resolved;
     }
 
     @NotNull
-    public TypeInfo lookupTypeRef(AstType type) {
+    public TypeInfo lookupTypeRef(TypeExpr type) {
         TypeInfo typeInfo = resolvedTypeRefs.get(type);
         if (typeInfo == null) {
             throw new IllegalStateException("Type ref " + type + " was not resolved.");

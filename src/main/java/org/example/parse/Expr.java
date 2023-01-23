@@ -147,7 +147,7 @@ public sealed interface Expr {
             Token nameToken,
             String name,
             @Nullable
-            AstType returnType,
+            TypeExpr returnType,
             List<FuncParam> parameters,
             Expr.Block body,
             Token funcToken
@@ -160,13 +160,13 @@ public sealed interface Expr {
 
     record FuncParam(
             String name,
-            AstType type
+            TypeExpr type
     ) {}
 
     record Let(
             Token nameToken,
             String name,
-            AstType type,
+            TypeExpr type,
             Expr value,
             Token letToken
     ) implements Item {
