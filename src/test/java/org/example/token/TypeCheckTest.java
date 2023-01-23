@@ -58,9 +58,6 @@ public class TypeCheckTest {
     }
 
     public static void checkTypes(String source) {
-        var ctx = new CompilerCtx();
-        Parser parser = ctx.createParser(ctx.addInMemoryFile("anon-file", source));
-        ParsedFile file = parser.parseFile();
-        new TypeChecker(ctx).checkFile(file);
+        CompilerCtx.checkTypes(source);
     }
 }

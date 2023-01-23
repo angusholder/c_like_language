@@ -27,9 +27,6 @@ public class ParserTest {
     }
 
     public static void printParseTree(String source) {
-        var ctx = new CompilerCtx();
-        Parser parser = ctx.createParser(ctx.addInMemoryFile("anon-file", source));
-        ParsedFile file = parser.parseFile();
-        new PrintAst().visit(file);
+        CompilerCtx.parseAndPrintTree(source);
     }
 }
