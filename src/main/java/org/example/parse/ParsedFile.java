@@ -4,8 +4,8 @@ import org.example.CompilerCtx;
 
 import java.util.List;
 
-public record AstFile(
+public record ParsedFile(
         CompilerCtx.FileInfo file,
-        List<AstExpr.Item> items
+        List<Expr.Item> items
 ) {
 }

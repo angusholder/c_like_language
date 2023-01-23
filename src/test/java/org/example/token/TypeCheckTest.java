@@ -1,10 +1,9 @@
 package org.example.token;
 
 import org.example.CompilerCtx;
-import org.example.parse.AstFile;
+import org.example.parse.ParsedFile;
 import org.example.parse.Parser;
 import org.example.typecheck.TypeChecker;
-import org.junit.Assert;
 import org.junit.Test;
 
 import static org.junit.Assert.assertThrows;
@@ -61,7 +60,7 @@ public class TypeCheckTest {
     public static void checkTypes(String source) {
         var ctx = new CompilerCtx();
         Parser parser = ctx.createParser(ctx.addInMemoryFile("anon-file", source));
-        AstFile file = parser.parseFile();
+        ParsedFile file = parser.parseFile();
         new TypeChecker(ctx).checkFile(file);
     }
 }

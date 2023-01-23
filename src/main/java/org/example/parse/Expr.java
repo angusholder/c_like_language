@@ -5,12 +5,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-public sealed interface AstExpr {
+public sealed interface Expr {
 
     record Number(
             String text,
             Token token
-    ) implements AstExpr {
+    ) implements Expr {
         @Override
         public TokenRange getTokenRange() {
             return new TokenRange(token, token);
@@ -20,7 +20,7 @@ public sealed interface AstExpr {
     record Boolean(
             boolean value,
             Token token
-    ) implements AstExpr {
+    ) implements Expr {
         @Override
         public TokenRange getTokenRange() {
             return new TokenRange(token, token);
@@ -30,7 +30,7 @@ public sealed interface AstExpr {
     record Identifier(
             String text,
             Token token
-    ) implements AstExpr {
+    ) implements Expr {
         @Override
         public TokenRange getTokenRange() {
             return new TokenRange(token, token);
@@ -38,10 +38,10 @@ public sealed interface AstExpr {
     }
 
     record Binary(
-            AstExpr left,
+            Expr left,
             BinaryOp op,
-            AstExpr right
-    ) implements AstExpr {
+            Expr right
+    ) implements Expr {
         @Override
         public TokenRange getTokenRange() {
             return new TokenRange(left.getTokenRange().start(), right.getTokenRange().end());
@@ -68,9 +68,9 @@ public sealed interface AstExpr {
 
     record Unary(
             UnaryOp op,
-            AstExpr expr,
+            Expr expr,
             Token opToken
-    ) implements AstExpr {
+    ) implements Expr {
         @Override
         public TokenRange getTokenRange() {
             return new TokenRange(opToken, expr.getTokenRange().end());
@@ -84,10 +84,10 @@ public sealed interface AstExpr {
 
     record Call(
             String callee,
-            List<AstExpr> arguments,
+            List<Expr> arguments,
             Token calleeToken,
             Token closeParenToken
-    ) implements AstExpr {
+    ) implements Expr {
         @Override
         public TokenRange getTokenRange() {
             return new TokenRange(calleeToken, closeParenToken);
@@ -95,10 +95,10 @@ public sealed interface AstExpr {
     }
 
     record Block(
-            List<AstExpr> items,
+            List<Expr> items,
             Token openBraceToken,
             Token closeBraceToken
-    ) implements AstExpr {
+    ) implements Expr {
         @Override
         public TokenRange getTokenRange() {
             return new TokenRange(openBraceToken, closeBraceToken);
@@ -106,13 +106,13 @@ public sealed interface AstExpr {
     }
 
     record If(
-            AstExpr condition,
-            AstExpr.Block thenBranch,
+            Expr condition,
+            Expr.Block thenBranch,
             List<ElseIf> elseIfs,
             @Nullable
-            AstExpr.Block elseBranch,
+            Expr.Block elseBranch,
             Token ifToken
-    ) implements AstExpr {
+    ) implements Expr {
         @Override
         public TokenRange getTokenRange() {
             Token lastBraceToken;
@@ -128,15 +128,15 @@ public sealed interface AstExpr {
     }
 
     record ElseIf(
-            AstExpr condition,
-            AstExpr.Block thenBranch
+            Expr condition,
+            Expr.Block thenBranch
     ) {}
 
     record While(
-            AstExpr condition,
-            AstExpr.Block body,
+            Expr condition,
+            Expr.Block body,
             Token whileToken
-    ) implements AstExpr {
+    ) implements Expr {
         @Override
         public TokenRange getTokenRange() {
             return new TokenRange(whileToken, body.getTokenRange().end());
@@ -149,7 +149,7 @@ public sealed interface AstExpr {
             @Nullable
             AstType returnType,
             List<FuncParam> parameters,
-            AstExpr.Block body,
+            Expr.Block body,
             Token funcToken
     ) implements Item {
         @Override
@@ -167,7 +167,7 @@ public sealed interface AstExpr {
             Token nameToken,
             String name,
             AstType type,
-            AstExpr value,
+            Expr value,
             Token letToken
     ) implements Item {
         @Override
@@ -177,14 +177,14 @@ public sealed interface AstExpr {
     }
 
     /** The subset of expressions that are allowed at the top level in a file. */
-    sealed interface Item extends AstExpr permits Function, Let {
+    sealed interface Item extends Expr permits Function, Let {
     }
 
     record Assign(
             String lhs,
-            AstExpr rhs,
+            Expr rhs,
             Token lhsToken
-    ) implements AstExpr {
+    ) implements Expr {
         @Override
         public TokenRange getTokenRange() {
             return new TokenRange(lhsToken, rhs.getTokenRange().end());
@@ -193,9 +193,9 @@ public sealed interface AstExpr {
 
     record Return(
             @Nullable
-            AstExpr returnValue,
+            Expr returnValue,
             Token returnToken
-    ) implements AstExpr {
+    ) implements Expr {
         @Override
         public TokenRange getTokenRange() {
             Token endToken;

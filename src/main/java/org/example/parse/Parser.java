@@ -1,7 +1,7 @@
 package org.example.parse;
 
-import org.example.parse.AstExpr.BinaryOp;
-import org.example.parse.AstExpr.UnaryOp;
+import org.example.parse.Expr.BinaryOp;
+import org.example.parse.Expr.UnaryOp;
 import org.example.token.Token;
 import org.example.token.TokenType;
 import org.example.token.Tokenizer;
@@ -20,16 +20,16 @@ public class Parser {
         return tokenizer;
     }
 
-    public AstFile parseFile() {
-        var items = new ArrayList<AstExpr.Item>();
+    public ParsedFile parseFile() {
+        var items = new ArrayList<Expr.Item>();
         while (tokenizer.hasNext()) {
             items.add(parseTopLevelItem());
         }
-        return new AstFile(tokenizer.getFile(), items);
+        return new ParsedFile(tokenizer.getFile(), items);
     }
 
-    public AstExpr.Block parseBlock() {
-        var items = new ArrayList<AstExpr>();
+    public Expr.Block parseBlock() {
+        var items = new ArrayList<Expr>();
         var lbraceToken = tokenizer.expect(TokenType.LBRACE);
         while (tokenizer.hasNext()) {
             if (tokenizer.peek() == TokenType.RBRACE) {
@@ -39,16 +39,16 @@ public class Parser {
             tokenizer.expect(TokenType.SEMICOLON);
         }
         var rbraceToken = tokenizer.expect(TokenType.RBRACE);
-        return new AstExpr.Block(items, lbraceToken, rbraceToken);
+        return new Expr.Block(items, lbraceToken, rbraceToken);
     }
 
-    private AstExpr.Item parseTopLevelItem() {
+    private Expr.Item parseTopLevelItem() {
         switch (tokenizer.peek()) {
             case K_FUNC -> {
                 return parseFunction();
             }
             case K_LET -> {
-                AstExpr.Let expr = parseLet();
+                Expr.Let expr = parseLet();
                 tokenizer.expect(TokenType.SEMICOLON);
                 return expr;
             }
@@ -58,24 +58,24 @@ public class Parser {
         }
     }
 
-    private AstExpr.While parseWhile() {
+    private Expr.While parseWhile() {
         var whileToken = tokenizer.expect(TokenType.K_WHILE);
-        AstExpr condition = parseParenExpr();
-        AstExpr.Block body = parseBlock();
-        return new AstExpr.While(condition, body, whileToken);
+        Expr condition = parseParenExpr();
+        Expr.Block body = parseBlock();
+        return new Expr.While(condition, body, whileToken);
     }
 
-    private AstExpr.If parseIf() {
+    private Expr.If parseIf() {
         var ifToken = tokenizer.expect(TokenType.K_IF);
-        AstExpr condition = parseParenExpr();
-        AstExpr.Block thenBranch = parseBlock();
-        List<AstExpr.ElseIf> elseIfs = new ArrayList<>();
-        AstExpr.Block elseBranch = null;
+        Expr condition = parseParenExpr();
+        Expr.Block thenBranch = parseBlock();
+        List<Expr.ElseIf> elseIfs = new ArrayList<>();
+        Expr.Block elseBranch = null;
         while (tokenizer.matchConsume(TokenType.K_ELSE)) {
             if (tokenizer.matchConsume(TokenType.K_IF)) {
-                AstExpr elseifCond = parseParenExpr();
-                AstExpr.Block elseifBody = parseBlock();
-                elseIfs.add(new AstExpr.ElseIf(elseifCond, elseifBody));
+                Expr elseifCond = parseParenExpr();
+                Expr.Block elseifBody = parseBlock();
+                elseIfs.add(new Expr.ElseIf(elseifCond, elseifBody));
             } else if (tokenizer.peek() == TokenType.LBRACE) {
                 elseBranch = parseBlock();
                 break;
@@ -83,14 +83,14 @@ public class Parser {
                 throw tokenizer.reportWrongTokenType(TokenType.K_IF, TokenType.LBRACE);
             }
         }
-        return new AstExpr.If(condition, thenBranch, elseIfs, elseBranch, ifToken);
+        return new Expr.If(condition, thenBranch, elseIfs, elseBranch, ifToken);
     }
 
-    private AstExpr.Function parseFunction() {
+    private Expr.Function parseFunction() {
         var funcToken = tokenizer.expect(TokenType.K_FUNC);
         Token name = tokenizer.expect(TokenType.IDENTIFIER);
         tokenizer.expect(TokenType.LPAREN);
-        List<AstExpr.FuncParam> params = new ArrayList<>();
+        List<Expr.FuncParam> params = new ArrayList<>();
         while (true) {
             if (tokenizer.peek() == TokenType.RPAREN) {
                 break;
@@ -98,7 +98,7 @@ public class Parser {
             Token paramName = tokenizer.expect(TokenType.IDENTIFIER);
             tokenizer.expect(TokenType.COLON);
             AstType paramType = parseType();
-            params.add(new AstExpr.FuncParam(tokenizer.getSourceOf(paramName), paramType));
+            params.add(new Expr.FuncParam(tokenizer.getSourceOf(paramName), paramType));
 
             if (tokenizer.peek() == TokenType.RPAREN) {
                 break;
@@ -110,36 +110,36 @@ public class Parser {
         if (tokenizer.matchConsume(TokenType.ARROW)) {
             returnType = parseType();
         }
-        AstExpr.Block body = parseBlock();
-        return new AstExpr.Function(name, tokenizer.getSourceOf(name), returnType, params, body, funcToken);
+        Expr.Block body = parseBlock();
+        return new Expr.Function(name, tokenizer.getSourceOf(name), returnType, params, body, funcToken);
     }
 
-    private AstExpr.Let parseLet() {
+    private Expr.Let parseLet() {
         var letToken = tokenizer.expect(TokenType.K_LET);
         Token name = tokenizer.expect(TokenType.IDENTIFIER);
         tokenizer.expect(TokenType.COLON);
         AstType type = parseType();
         tokenizer.expect(TokenType.ASSIGN);
-        AstExpr value = parseExpr();
-        return new AstExpr.Let(name, tokenizer.getSourceOf(name), type, value, letToken);
+        Expr value = parseExpr();
+        return new Expr.Let(name, tokenizer.getSourceOf(name), type, value, letToken);
     }
 
     private AstType parseType() {
         return new AstType.Identifier(tokenizer.getSourceOf(tokenizer.expect(TokenType.IDENTIFIER)));
     }
 
-    private AstExpr parseParenExpr() {
+    private Expr parseParenExpr() {
         tokenizer.expect(TokenType.LPAREN);
-        AstExpr expr = parseExpr();
+        Expr expr = parseExpr();
         tokenizer.expect(TokenType.RPAREN);
         return expr;
     }
 
-    private AstExpr parseExpr() {
+    private Expr parseExpr() {
         return exprOr();
     }
 
-    private AstExpr exprAtom() {
+    private Expr exprAtom() {
         switch (tokenizer.peek()) {
             case LBRACE -> {
                 return parseBlock();
@@ -161,7 +161,7 @@ public class Parser {
             }
             case NUMBER -> {
                 var token = tokenizer.next();
-                return new AstExpr.Number(tokenizer.getSourceOf(token), token);
+                return new Expr.Number(tokenizer.getSourceOf(token), token);
             }
             case IDENTIFIER -> {
                 Token ident = tokenizer.next();
@@ -171,23 +171,23 @@ public class Parser {
                 if (tokenizer.peek() == TokenType.ASSIGN) {
                     return parseAssign(ident);
                 }
-                return new AstExpr.Identifier(tokenizer.getSourceOf(ident), ident);
+                return new Expr.Identifier(tokenizer.getSourceOf(ident), ident);
             }
             case K_TRUE -> {
                 var token = tokenizer.next();
-                return new AstExpr.Boolean(true, token);
+                return new Expr.Boolean(true, token);
             }
             case K_FALSE -> {
                 var token = tokenizer.next();
-                return new AstExpr.Boolean(false, token);
+                return new Expr.Boolean(false, token);
             }
             case K_RETURN -> {
                 var returnToken = tokenizer.next();
-                AstExpr retValue = null;
+                Expr retValue = null;
                 if (tokenizer.peek() != TokenType.SEMICOLON) {
                     retValue = parseExpr();
                 }
-                return new AstExpr.Return(retValue, returnToken);
+                return new Expr.Return(retValue, returnToken);
             }
             default -> {
                 throw tokenizer.reportWrongTokenType(TokenType.LBRACE, TokenType.K_LET, TokenType.K_FUNC, TokenType.K_WHILE, TokenType.K_IF, TokenType.LPAREN, TokenType.NUMBER, TokenType.IDENTIFIER, TokenType.K_FALSE, TokenType.K_TRUE, TokenType.K_RETURN);
@@ -195,15 +195,15 @@ public class Parser {
         }
     }
 
-    private AstExpr parseAssign(Token lhs) {
+    private Expr parseAssign(Token lhs) {
         tokenizer.expect(TokenType.ASSIGN);
-        AstExpr value = parseExpr();
-        return new AstExpr.Assign(tokenizer.getSourceOf(lhs), value, lhs);
+        Expr value = parseExpr();
+        return new Expr.Assign(tokenizer.getSourceOf(lhs), value, lhs);
     }
 
-    private AstExpr parseCall(Token name) {
+    private Expr parseCall(Token name) {
         tokenizer.expect(TokenType.LPAREN);
-        List<AstExpr> args = new ArrayList<>();
+        List<Expr> args = new ArrayList<>();
         while (true) {
             if (tokenizer.peek() == TokenType.RPAREN) {
                 break;
@@ -218,10 +218,10 @@ public class Parser {
             }
         }
         var closeParenToken = tokenizer.expect(TokenType.RPAREN);
-        return new AstExpr.Call(tokenizer.getSourceOf(name), args, name, closeParenToken);
+        return new Expr.Call(tokenizer.getSourceOf(name), args, name, closeParenToken);
     }
 
-    private AstExpr exprUnary() {
+    private Expr exprUnary() {
         UnaryOp op;
         switch (tokenizer.peek()) {
             case MINUS -> op = UnaryOp.NEG;
@@ -232,12 +232,12 @@ public class Parser {
         }
         var opToken = tokenizer.next();
 
-        AstExpr expr = exprUnary();
-        return new AstExpr.Unary(op, expr, opToken);
+        Expr expr = exprUnary();
+        return new Expr.Unary(op, expr, opToken);
     }
 
-    private AstExpr exprMul() {
-        AstExpr expr = exprUnary();
+    private Expr exprMul() {
+        Expr expr = exprUnary();
         while (true) {
             BinaryOp op;
             switch (tokenizer.peek()) {
@@ -249,13 +249,13 @@ public class Parser {
             };
             tokenizer.next();
 
-            AstExpr right = exprUnary();
-            expr = new AstExpr.Binary(expr, op, right);
+            Expr right = exprUnary();
+            expr = new Expr.Binary(expr, op, right);
         }
     }
 
-    private AstExpr exprAdd() {
-        AstExpr expr = exprMul();
+    private Expr exprAdd() {
+        Expr expr = exprMul();
         while (true) {
             BinaryOp op;
             switch (tokenizer.peek()) {
@@ -267,13 +267,13 @@ public class Parser {
             };
             tokenizer.next();
 
-            AstExpr right = exprMul();
-            expr = new AstExpr.Binary(expr, op, right);
+            Expr right = exprMul();
+            expr = new Expr.Binary(expr, op, right);
         }
     }
 
-    private AstExpr exprComparison() {
-        AstExpr expr = exprAdd();
+    private Expr exprComparison() {
+        Expr expr = exprAdd();
         while (true) {
             BinaryOp op;
             switch (tokenizer.peek()) {
@@ -289,25 +289,25 @@ public class Parser {
             };
             tokenizer.next();
 
-            AstExpr right = exprAdd();
-            expr = new AstExpr.Binary(expr, op, right);
+            Expr right = exprAdd();
+            expr = new Expr.Binary(expr, op, right);
         }
     }
 
-    private AstExpr exprAnd() {
-        AstExpr expr = exprComparison();
+    private Expr exprAnd() {
+        Expr expr = exprComparison();
         while (tokenizer.matchConsume(TokenType.AND)) {
-            AstExpr right = exprComparison();
-            expr = new AstExpr.Binary(expr, BinaryOp.AND, right);
+            Expr right = exprComparison();
+            expr = new Expr.Binary(expr, BinaryOp.AND, right);
         }
         return expr;
     }
 
-    private AstExpr exprOr() {
-        AstExpr expr = exprAnd();
+    private Expr exprOr() {
+        Expr expr = exprAnd();
         while (tokenizer.matchConsume(TokenType.OR)) {
-            AstExpr right = exprAnd();
-            expr = new AstExpr.Binary(expr, BinaryOp.OR, right);
+            Expr right = exprAnd();
+            expr = new Expr.Binary(expr, BinaryOp.OR, right);
         }
         return expr;
     }

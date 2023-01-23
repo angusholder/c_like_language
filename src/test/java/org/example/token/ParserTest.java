@@ -1,7 +1,7 @@
 package org.example.token;
 
 import org.example.CompilerCtx;
-import org.example.parse.AstFile;
+import org.example.parse.ParsedFile;
 import org.example.parse.Parser;
 import org.example.parse.PrintAst;
 import org.junit.Test;
@@ -29,7 +29,7 @@ public class ParserTest {
     public static void printParseTree(String source) {
         var ctx = new CompilerCtx();
         Parser parser = ctx.createParser(ctx.addInMemoryFile("anon-file", source));
-        AstFile file = parser.parseFile();
+        ParsedFile file = parser.parseFile();
         new PrintAst().visit(file);
     }
 }

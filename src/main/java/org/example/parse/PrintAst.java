@@ -24,42 +24,42 @@ public class PrintAst {
         stream.println(s);
     }
 
-    public void visit(AstFile file) {
+    public void visit(ParsedFile file) {
         println(file.file().name());
         indented(() -> {
-            for (AstExpr.Item item : file.items()) {
+            for (Expr.Item item : file.items()) {
                 visit(item);
             }
         });
     }
 
-    public void visit(AstExpr bodyItem) {
+    public void visit(Expr bodyItem) {
         switch (bodyItem) {
-            case AstExpr.Binary binary -> {
+            case Expr.Binary binary -> {
                 println(binary.op().name());
                 indented(() -> {
                     visit(binary.left());
                     visit(binary.right());
                 });
             }
-            case AstExpr.Block block -> {
+            case Expr.Block block -> {
                 println("Block:");
                 indented(() -> {
-                    for (AstExpr item : block.items()) {
+                    for (Expr item : block.items()) {
                         visit(item);
                     }
                 });
             }
-            case AstExpr.Call call -> {
+            case Expr.Call call -> {
                 println("Call:");
                 indented(() -> {
                     println(call.callee());
-                    for (AstExpr arg : call.arguments()) {
+                    for (Expr arg : call.arguments()) {
                         visit(arg);
                     }
                 });
             }
-            case AstExpr.If anIf -> {
+            case Expr.If anIf -> {
                 println("if");
                 indented(() -> visit(anIf.condition()));
                 println("then");
@@ -74,26 +74,26 @@ public class PrintAst {
                     indented(() -> visit(anIf.elseBranch()));
                 }
             }
-            case AstExpr.Unary unary -> {
+            case Expr.Unary unary -> {
                 println(unary.op().name());
                 indented(() -> visit(unary.expr()));
             }
-            case AstExpr.While aWhile -> {
+            case Expr.While aWhile -> {
                 println("while");
                 indented(() -> visit(aWhile.condition()));
                 println("do");
                 indented(() -> visit(aWhile.body()));
             }
-            case AstExpr.Number number -> {
+            case Expr.Number number -> {
                 println("Number: " + number.text());
             }
-            case AstExpr.Identifier identifier -> {
+            case Expr.Identifier identifier -> {
                 println("Identifier: " + identifier.text());
             }
-            case AstExpr.Boolean bool -> {
+            case Expr.Boolean bool -> {
                 println(String.valueOf(bool.value()));
             }
-            case AstExpr.Function function -> {
+            case Expr.Function function -> {
                 println("Function: " + function.name());
                 indented(() -> {
                     if (function.returnType() != null) {
@@ -109,13 +109,13 @@ public class PrintAst {
                     println("Body:");
 
                     indented(() -> {
-                        for (AstExpr expr : function.body().items()) {
+                        for (Expr expr : function.body().items()) {
                             visit(expr);
                         }
                     });
                 });
             }
-            case AstExpr.Let let -> {
+            case Expr.Let let -> {
                 println("Let");
                 indented(() -> {
                     println(let.name());
@@ -123,14 +123,14 @@ public class PrintAst {
                     visit(let.value());
                 });
             }
-            case AstExpr.Assign assign -> {
+            case Expr.Assign assign -> {
                 println("Assign");
                 indented(() -> {
                     println(assign.lhs());
                     visit(assign.rhs());
                 });
             }
-            case AstExpr.Return ret -> {
+            case Expr.Return ret -> {
                 println("return");
                 if (ret.returnValue() != null) {
                     indented(() -> visit(ret.returnValue()));

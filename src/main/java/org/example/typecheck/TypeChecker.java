@@ -1,8 +1,8 @@
 package org.example.typecheck;
 
 import org.example.CompilerCtx;
-import org.example.parse.AstExpr;
-import org.example.parse.AstFile;
+import org.example.parse.Expr;
+import org.example.parse.ParsedFile;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -16,16 +16,16 @@ public class TypeChecker {
         this.ctx = ctx;
     }
 
-    public void checkFile(AstFile file) {
+    public void checkFile(ParsedFile file) {
         resolveExprList(file.items());
     }
 
-    public <T extends AstExpr> void resolveExprList(List<T> exprList) {
+    public <T extends Expr> void resolveExprList(List<T> exprList) {
         // TODO: 1) Resolve type definitions
 
         // 2) Resolve functions
         for (var expr : exprList) {
-            if (expr instanceof AstExpr.Function function) {
+            if (expr instanceof Expr.Function function) {
                 resolveFunctionSymbol(function);
             }
         }
@@ -37,7 +37,7 @@ public class TypeChecker {
     }
 
     @NotNull
-    private TypeInfo resolveExpr(AstExpr expr) {
+    private TypeInfo resolveExpr(Expr expr) {
         TypeInfo type = table.tryLookupExpr(expr);
         if (type == null) {
             type = checkExpr(expr);
@@ -47,25 +47,25 @@ public class TypeChecker {
     }
 
     @NotNull
-    private TypeInfo checkExpr(AstExpr expr) {
+    private TypeInfo checkExpr(Expr expr) {
         return switch (expr) {
-            case AstExpr.Assign assign -> {
+            case Expr.Assign assign -> {
                 Symbol.Value lhsSymbol = table.lookupValue(assign.lhs());
                 TypeInfo rhsType = resolveExpr(assign.rhs());
                 checkSame(lhsSymbol.valueType(), rhsType);
                 yield TypeInfo.VOID;
             }
-            case AstExpr.Binary binary -> checkBinaryExpr(binary);
-            case AstExpr.Block block -> checkBlock(block);
-            case AstExpr.Call call -> checkCall(call);
-            case AstExpr.Identifier identifier -> table.lookupValue(identifier.text()).valueType();
-            case AstExpr.If anIf -> checkIfStmt(anIf);
-            case AstExpr.Number number -> {
+            case Expr.Binary binary -> checkBinaryExpr(binary);
+            case Expr.Block block -> checkBlock(block);
+            case Expr.Call call -> checkCall(call);
+            case Expr.Identifier identifier -> table.lookupValue(identifier.text()).valueType();
+            case Expr.If anIf -> checkIfStmt(anIf);
+            case Expr.Number number -> {
                 // TODO: Support more than one number type
                 yield TypeInfo.I32;
             }
-            case AstExpr.Boolean ignored -> TypeInfo.BOOL;
-            case AstExpr.Unary unary -> {
+            case Expr.Boolean ignored -> TypeInfo.BOOL;
+            case Expr.Unary unary -> {
                 TypeInfo type = resolveExpr(unary.expr());
                 yield switch (unary.op()) {
                     case NEG -> {
@@ -78,21 +78,21 @@ public class TypeChecker {
                     }
                 };
             }
-            case AstExpr.While aWhile -> {
+            case Expr.While aWhile -> {
                 TypeInfo condType = resolveExpr(aWhile.condition());
                 checkIsBool(condType);
                 resolveExpr(aWhile.body());
                 yield TypeInfo.VOID;
             }
-            case AstExpr.Function function -> checkFunctionBody(function);
-            case AstExpr.Let let -> {
+            case Expr.Function function -> checkFunctionBody(function);
+            case Expr.Let let -> {
                 TypeInfo type = table.resolveType(let.type());
                 TypeInfo exprType = resolveExpr(let.value());
                 checkSame(type, exprType);
                 table.addVariableSymbol(let.name(), type);
                 yield TypeInfo.VOID;
             }
-            case AstExpr.Return ret -> {
+            case Expr.Return ret -> {
                 TypeInfo returnType;
                 if (ret.returnValue() != null) {
                     returnType = resolveExpr(ret.returnValue());
@@ -110,7 +110,7 @@ public class TypeChecker {
         };
     }
 
-    private TypeInfo checkIfStmt(AstExpr.If anIf) {
+    private TypeInfo checkIfStmt(Expr.If anIf) {
         checkIsBool(resolveExpr(anIf.condition()));
         TypeInfo thenType = resolveExpr(anIf.thenBranch());
         for (var elseif : anIf.elseIfs()) {
@@ -134,7 +134,7 @@ public class TypeChecker {
         }
     }
 
-    private TypeInfo checkCall(AstExpr.Call call) {
+    private TypeInfo checkCall(Expr.Call call) {
         Symbol.Function function = table.lookupFunction(call.callee());
         table.bindCallSite(call, function);
 
@@ -142,7 +142,7 @@ public class TypeChecker {
             throw new RuntimeException("Expected " + function.params().size() + " arguments, got " + call.arguments().size());
         }
         for (int i = 0; i < function.params().size(); i++) {
-            AstExpr arg = call.arguments().get(i);
+            Expr arg = call.arguments().get(i);
             Symbol.FunctionParam param = function.params().get(i);
             var argType = resolveExpr(arg);
             checkSame(param.type(), argType);
@@ -151,7 +151,7 @@ public class TypeChecker {
         return function.returnType();
     }
 
-    private TypeInfo checkBlock(AstExpr.Block block) {
+    private TypeInfo checkBlock(Expr.Block block) {
         if (block.items().isEmpty()) {
             return TypeInfo.VOID;
         } else {
@@ -166,7 +166,7 @@ public class TypeChecker {
     }
 
     @NotNull
-    private TypeInfo checkBinaryExpr(AstExpr.Binary binary) {
+    private TypeInfo checkBinaryExpr(Expr.Binary binary) {
         var left = resolveExpr(binary.left());
         var right = resolveExpr(binary.right());
 
@@ -199,7 +199,7 @@ public class TypeChecker {
         }
     }
 
-    private void resolveFunctionSymbol(AstExpr.Function function) {
+    private void resolveFunctionSymbol(Expr.Function function) {
         List<Symbol.FunctionParam> params = new ArrayList<>();
         for (var param : function.parameters()) {
             TypeInfo typeInfo = table.resolveType(param.type());
@@ -216,11 +216,11 @@ public class TypeChecker {
     }
 
     @NotNull
-    private TypeInfo checkFunctionBody(AstExpr.Function function) {
+    private TypeInfo checkFunctionBody(Expr.Function function) {
         table.pushScope();
         Symbol.Function funcSymbol = table.lookupFunction(function);
         table.setFunctionScope(funcSymbol);
-        for (AstExpr item : function.body().items()) {
+        for (Expr item : function.body().items()) {
             resolveExpr(item);
         }
         table.popScope();

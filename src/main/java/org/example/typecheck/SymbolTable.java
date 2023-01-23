@@ -1,6 +1,6 @@
 package org.example.typecheck;
 
-import org.example.parse.AstExpr;
+import org.example.parse.Expr;
 import org.example.parse.AstType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -16,10 +16,10 @@ public class SymbolTable {
     private final Scope globalScope = Scope.createGlobal();
 
     private final List<Scope> scopes = new ArrayList<>();
-    private final IdentityHashMap<AstExpr, TypeInfo> resolvedExprTypes = new IdentityHashMap<>();
-    private final IdentityHashMap<AstExpr.Call, Symbol.Function> resolvedCallSites = new IdentityHashMap<>();
+    private final IdentityHashMap<Expr, TypeInfo> resolvedExprTypes = new IdentityHashMap<>();
+    private final IdentityHashMap<Expr.Call, Symbol.Function> resolvedCallSites = new IdentityHashMap<>();
     private final IdentityHashMap<AstType, TypeInfo> resolvedTypeRefs = new IdentityHashMap<>();
-    private final IdentityHashMap<AstExpr.Function, Symbol.Function> resolvedFunctions = new IdentityHashMap<>();
+    private final IdentityHashMap<Expr.Function, Symbol.Function> resolvedFunctions = new IdentityHashMap<>();
 
     public SymbolTable() {
         scopes.add(globalScope);
@@ -140,21 +140,21 @@ public class SymbolTable {
     }
 
     @Nullable
-    public TypeInfo tryLookupExpr(AstExpr expr) {
+    public TypeInfo tryLookupExpr(Expr expr) {
         return resolvedExprTypes.get(expr);
     }
 
-    public void setExprType(AstExpr expr, TypeInfo type) {
+    public void setExprType(Expr expr, TypeInfo type) {
         resolvedExprTypes.put(expr, type);
     }
 
-    public void bindCallSite(AstExpr.Call call, Symbol.Function function) {
+    public void bindCallSite(Expr.Call call, Symbol.Function function) {
         // We don't currently support function pointers, only statically known functions.
         resolvedCallSites.put(call, function);
     }
 
     @NotNull
-    public Symbol.Function lookupCallSite(AstExpr.Call call) {
+    public Symbol.Function lookupCallSite(Expr.Call call) {
         Symbol.Function function = resolvedCallSites.get(call);
         if (function == null) {
             throw new IllegalStateException("Callsite " + call + " was not resolved.");
@@ -179,13 +179,13 @@ public class SymbolTable {
         addSymbol(new Symbol.Param(name, type));
     }
 
-    public void addFunctionSymbol(AstExpr.Function funcAst, List<Symbol.FunctionParam> params, TypeInfo returnType) {
+    public void addFunctionSymbol(Expr.Function funcAst, List<Symbol.FunctionParam> params, TypeInfo returnType) {
         var symbol = new Symbol.Function(funcAst.name(), params, returnType);
         addSymbol(symbol);
         resolvedFunctions.put(funcAst, symbol);
     }
 
-    public Symbol.Function lookupFunction(AstExpr.Function funcAst) {
+    public Symbol.Function lookupFunction(Expr.Function funcAst) {
         Symbol.Function function = resolvedFunctions.get(funcAst);
         if (function == null) {
             throw new IllegalStateException("Function " + funcAst + " was not resolved.");
