@@ -28,3 +28,8 @@ func ifExpression() -> i32 {
     };
 }
 ```
+
+# Useful resources:
+
+- [X64 instruction reference](https://www.felixcloutier.com/x86/)
+- [Pratt parser](http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/)
