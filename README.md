@@ -32,4 +32,5 @@ func ifExpression() -> i32 {
 # Useful resources:
 
 - [X64 instruction reference](https://www.felixcloutier.com/x86/)
-- [Pratt parser](http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/)
+- [Pratt parsers by Bob Nystrom](http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/)
+- [Pratt parsers by matklad](https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html)
