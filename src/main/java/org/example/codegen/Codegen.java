@@ -2,73 +2,162 @@ package org.example.codegen;
 
 import org.example.CompilerCtx;
 import org.example.parse.Expr;
-import org.example.parse.ParsedFile;
 import org.example.typecheck.SymbolTable;
 
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import static java.lang.foreign.ValueLayout.*;
 
 public class Codegen {
 
-    public void emitCode(Expr.Block block, CompilerCtx ctx, SymbolTable symbols) {
-        StringBuilder code = new StringBuilder();
-        for (Expr expr : block.items()) {
-            switch (expr) {
-                case Expr.Number number -> {
-                    code.append("MOV rax, ").append(number.text());
-                }
-                case Expr.Binary binary -> {
-                    switch (binary.op()) {
-                        case ADD -> {
-                        }
-                        case SUB -> {
-                        }
-                        case MUL -> {
-                        }
-                        case DIV -> {
-                        }
-                        case AND -> {
-                        }
-                        case OR -> {
-                        }
-                        case EQUALS -> {
-                        }
-                        case NOT_EQUALS -> {
-                        }
-                        case LT_EQ -> {
-                        }
-                        case LT -> {
-                        }
-                        case GT_EQ -> {
-                        }
-                        case GT -> {
-                        }
-                    }
-                }
-                case Expr.Boolean aBoolean -> {
-                    code.append("MOV rax, ").append(aBoolean.value() ? 1 : 0);
-                }
-                case Expr.Unary unary -> {
-                    switch (unary.op()) {
-                        case NEG -> code.append("NEG rax");
-                        case NOT -> code.append("NOT rax");
-                    }
-                }
-                case Expr.Identifier identifier -> throw new UnsupportedOperationException();
-                case Expr.If anIf -> throw new UnsupportedOperationException();
-                case Expr.Assign assign -> throw new UnsupportedOperationException();
-                case Expr.Block block1 -> throw new UnsupportedOperationException();
-                case Expr.Call call -> throw new UnsupportedOperationException();
-                case Expr.Return aReturn -> throw new UnsupportedOperationException();
-                case Expr.While aWhile -> throw new UnsupportedOperationException();
-                case Expr.Function function -> throw new UnsupportedOperationException();
-                case Expr.Let let -> throw new UnsupportedOperationException();
-            }
+    public static class Emitter {
+        public void output(String line) {
+            System.out.println(line);
         }
+
+        // MOV rax, rcx
+        public void opRR(String op, String r1, String r2) {
+            output(op + " " + r1 + ", " + r2);
+        }
+
+        // MOV rax, 123
+        public void opRI(String op, String r1, String imm) {
+            output(op + " " + r1 + ", " + imm);
+        }
+
+        // MOV rax, 123
+        public void opRI(String op, String r1, int imm) {
+            output(op + " " + r1 + ", " + imm);
+        }
+
+        // MOV rax, 123
+        public void opR(String op, String r1) {
+            output(op + " " + r1);
+        }
+    }
+
+    public static final String[] ARG_REGS = {"rcx", "rdx", "r8", "r9"};
+    public static final String[] VOLATILE_REGS = {"rax", "rcx", "rdx", "r8", "r9", "r10", "r11"};
+
+    public static class Registers {
+        private final Set<String> free = new LinkedHashSet<>(Arrays.asList(VOLATILE_REGS));
+        private final Set<String> used = new LinkedHashSet<>();
+
+        public String reserve() {
+            String reg = free.iterator().next();
+            free.remove(reg);
+            used.add(reg);
+            return reg;
+        }
+
+        public void release(String reg) {
+            used.remove(reg);
+            free.add(reg);
+        }
+
+        public void dump() {
+            System.out.println("free: " + free);
+            System.out.println("used: " + used);
+        }
+    }
+
+    private final CompilerCtx ctx;
+    private final SymbolTable symbols;
+    public final Registers registers = new Registers();
+
+    public Codegen(CompilerCtx ctx) {
+        this.ctx = ctx;
+        this.symbols = ctx.symbols;
+    }
+
+    public String emitCode(Expr expr) {
+        Emitter code = new Emitter();
+        switch (expr) {
+            case Expr.Number number -> {
+                String reg = registers.reserve();
+                code.opRI("MOV", reg, number.text());
+                return reg;
+            }
+            case Expr.Binary(Expr left, Expr.BinaryOp op, Expr.Number right) -> {
+                String leftReg = emitCode(left);
+                switch (op) {
+                    case ADD, SUB, MUL, DIV, AND, OR -> {
+                        code.opRI(op.name(), leftReg, right.text());
+                        return leftReg;
+                    }
+                    case EQUALS, NOT_EQUALS, LT_EQ, LT, GT_EQ, GT -> {
+                        code.opRI("CMP", leftReg, right.text());
+                        String setOp = switch (op) {
+                            case EQUALS -> "SETE";
+                            case NOT_EQUALS -> "SETNE";
+                            case LT_EQ -> "SETLE";
+                            case LT -> "SETL";
+                            case GT_EQ -> "SETGE";
+                            case GT -> "SETG";
+                            default -> throw new UnsupportedOperationException();
+                        };
+                        code.opR(setOp, leftReg);
+                        return leftReg;
+                    }
+                }
+            }
+            case Expr.Binary binary -> {
+                String leftReg = emitCode(binary.left());
+                String rightReg = emitCode(binary.right());
+                Expr.BinaryOp op = binary.op();
+                switch (op) {
+                    case ADD, SUB, MUL, DIV, AND, OR -> {
+                        code.opRR(op.name(), leftReg, rightReg);
+                        registers.release(rightReg);
+                        return leftReg;
+                    }
+                    case EQUALS, NOT_EQUALS, LT_EQ, LT, GT_EQ, GT -> {
+                        code.opRR("CMP", leftReg, rightReg);
+                        String setOp = switch (op) {
+                            case EQUALS -> "SETE";
+                            case NOT_EQUALS -> "SETNE";
+                            case LT_EQ -> "SETLE";
+                            case LT -> "SETL";
+                            case GT_EQ -> "SETGE";
+                            case GT -> "SETG";
+                            default -> throw new UnsupportedOperationException();
+                        };
+                        code.opR(setOp, leftReg);
+                        registers.release(rightReg);
+                        return leftReg;
+                    }
+                }
+            }
+            case Expr.Boolean aBoolean -> {
+                String reg = registers.reserve();
+                code.opRI("MOV", reg, aBoolean.value() ? 1 : 0);
+                return reg;
+            }
+            case Expr.Unary unary -> {
+                String reg = emitCode(unary.expr());
+                switch (unary.op()) {
+                    case NEG -> code.opR("NEG", reg);
+                    case NOT -> code.opR("NOT", reg);
+                }
+                return reg;
+            }
+            case Expr.Identifier identifier -> throw new UnsupportedOperationException();
+            case Expr.If anIf -> throw new UnsupportedOperationException();
+            case Expr.Assign assign -> throw new UnsupportedOperationException();
+            case Expr.Block block1 -> throw new UnsupportedOperationException();
+            case Expr.Call call -> throw new UnsupportedOperationException();
+            case Expr.Return aReturn -> throw new UnsupportedOperationException();
+            case Expr.While aWhile -> throw new UnsupportedOperationException();
+            case Expr.Function function -> throw new UnsupportedOperationException();
+            case Expr.Let let -> throw new UnsupportedOperationException();
+            default -> throw new IllegalStateException("Unexpected value: " + expr);
+        }
+        throw new UnsupportedOperationException();
     }
 
     public static void main(String[] args) throws Throwable {

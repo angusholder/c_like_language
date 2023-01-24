@@ -135,7 +135,7 @@ public class Parser {
         return expr;
     }
 
-    private Expr parseExpr() {
+    public Expr parseExpr() {
         return exprOr();
     }
 

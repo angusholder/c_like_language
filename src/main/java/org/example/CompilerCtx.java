@@ -1,5 +1,6 @@
 package org.example;
 
+import org.example.codegen.Codegen;
 import org.example.parse.Expr;
 import org.example.parse.ParsedFile;
 import org.example.parse.Parser;
@@ -8,6 +9,7 @@ import org.example.token.SourceLoc;
 import org.example.token.SourceSpan;
 import org.example.token.Token;
 import org.example.token.Tokenizer;
+import org.example.typecheck.SymbolTable;
 import org.example.typecheck.TypeChecker;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -31,6 +33,8 @@ public class CompilerCtx {
 
     private final AtomicInteger nextUid = new AtomicInteger(1);
     private final Map<Integer, FileInfo> files = new LinkedHashMap<>();
+
+    public final SymbolTable symbols = new SymbolTable();
 
     public CompilerCtx() {
 
@@ -120,5 +124,15 @@ public class CompilerCtx {
         Parser parser = ctx.createParser(ctx.addInMemoryFile("anon-file", source));
         ParsedFile file = parser.parseFile();
         new TypeChecker(ctx).checkFile(file);
+    }
+
+    public static void codeEmitForExpression(String source) {
+        System.out.println("\nCodegen for expression: " + source);
+        var ctx = new CompilerCtx();
+        Parser parser = ctx.createParser(ctx.addInMemoryFile("anon-file", source));
+        Expr expr = parser.parseExpr();
+        new TypeChecker(ctx).resolveExpr(expr);
+        Codegen codegen = new Codegen(ctx);
+        codegen.emitCode(expr);
     }
 }

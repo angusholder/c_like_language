@@ -10,10 +10,11 @@ import java.util.List;
 
 public class TypeChecker {
     private final CompilerCtx ctx;
-    private final SymbolTable table = new SymbolTable();
+    private final SymbolTable table;
 
     public TypeChecker(CompilerCtx ctx) {
         this.ctx = ctx;
+        this.table = ctx.symbols;
     }
 
     public void checkFile(ParsedFile file) {
@@ -37,7 +38,7 @@ public class TypeChecker {
     }
 
     @NotNull
-    private TypeInfo resolveExpr(Expr expr) {
+    public TypeInfo resolveExpr(Expr expr) {
         TypeInfo type = table.tryLookupExpr(expr);
         if (type == null) {
             type = checkExpr(expr);
