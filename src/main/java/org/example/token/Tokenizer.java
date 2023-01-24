@@ -187,13 +187,13 @@ public class Tokenizer {
             }
             default -> {
                 if (Character.isJavaIdentifierStart(cur)) {
-                    while (Character.isJavaIdentifierPart(peekChar())) {
+                    while (hasMoreChars() && Character.isJavaIdentifierPart(peekChar())) {
                         nextChar();
                     }
                     return makeToken(getKeywordType(getCurrentSpan()));
                 }
                 if (Character.isDigit(cur)) {
-                    while (Character.isDigit(peekChar())) {
+                    while (hasMoreChars() && Character.isDigit(peekChar())) {
                         nextChar();
                     }
                     return makeToken(TokenType.NUMBER);
