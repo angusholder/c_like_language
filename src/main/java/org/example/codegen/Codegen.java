@@ -1,5 +1,10 @@
 package org.example.codegen;
 
+import org.example.CompilerCtx;
+import org.example.parse.Expr;
+import org.example.parse.ParsedFile;
+import org.example.typecheck.SymbolTable;
+
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.nio.ByteBuffer;
@@ -8,6 +13,63 @@ import java.util.Arrays;
 import static java.lang.foreign.ValueLayout.*;
 
 public class Codegen {
+
+    public void emitCode(Expr.Block block, CompilerCtx ctx, SymbolTable symbols) {
+        StringBuilder code = new StringBuilder();
+        for (Expr expr : block.items()) {
+            switch (expr) {
+                case Expr.Number number -> {
+                    code.append("MOV rax, ").append(number.text());
+                }
+                case Expr.Binary binary -> {
+                    switch (binary.op()) {
+                        case ADD -> {
+                        }
+                        case SUB -> {
+                        }
+                        case MUL -> {
+                        }
+                        case DIV -> {
+                        }
+                        case AND -> {
+                        }
+                        case OR -> {
+                        }
+                        case EQUALS -> {
+                        }
+                        case NOT_EQUALS -> {
+                        }
+                        case LT_EQ -> {
+                        }
+                        case LT -> {
+                        }
+                        case GT_EQ -> {
+                        }
+                        case GT -> {
+                        }
+                    }
+                }
+                case Expr.Boolean aBoolean -> {
+                    code.append("MOV rax, ").append(aBoolean.value() ? 1 : 0);
+                }
+                case Expr.Unary unary -> {
+                    switch (unary.op()) {
+                        case NEG -> code.append("NEG rax");
+                        case NOT -> code.append("NOT rax");
+                    }
+                }
+                case Expr.Identifier identifier -> throw new UnsupportedOperationException();
+                case Expr.If anIf -> throw new UnsupportedOperationException();
+                case Expr.Assign assign -> throw new UnsupportedOperationException();
+                case Expr.Block block1 -> throw new UnsupportedOperationException();
+                case Expr.Call call -> throw new UnsupportedOperationException();
+                case Expr.Return aReturn -> throw new UnsupportedOperationException();
+                case Expr.While aWhile -> throw new UnsupportedOperationException();
+                case Expr.Function function -> throw new UnsupportedOperationException();
+                case Expr.Let let -> throw new UnsupportedOperationException();
+            }
+        }
+    }
 
     public static void main(String[] args) throws Throwable {
         if (!System.getProperty("os.name", "").toLowerCase().contains("win")) {
@@ -68,7 +130,7 @@ public class Codegen {
 
     public static final String ASM_READ_REGS = """
         48 89 41 00 ; mov qword ptr [rcx + 0x00], rax
-        48 89 49 08 ; mov qword ptr [rcx + 0x00], rcx
+        48 89 49 08 ; mov qword ptr [rcx + 0x08], rcx
         48 89 51 10 ; mov qword ptr [rcx + 0x10], rdx
         48 89 59 18 ; mov qword ptr [rcx + 0x18], rbx
         48 89 61 20 ; mov qword ptr [rcx + 0x20], rsp
