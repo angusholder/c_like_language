@@ -5,6 +5,8 @@ import org.example.parse.Expr.UnaryOp;
 import org.example.token.Token;
 import org.example.token.TokenType;
 import org.example.token.Tokenizer;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,6 +58,101 @@ public class Parser {
                 throw tokenizer.reportWrongTokenType(TokenType.K_FUNC, TokenType.K_LET);
             }
         }
+    }
+
+    public Expr parseExpr() {
+        return parseExpr(0);
+    }
+
+    // A 'Pratt' expression parser, written using https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html
+    private Expr parseExpr(int minBP) {
+        UnaryOp unaryOp = getUnaryOpForToken(tokenizer.peek());
+        Expr lhs;
+        if (unaryOp == null) {
+            lhs = exprAtom();
+        } else {
+            int rBP = prefixRightBindingPower(unaryOp);
+            Token opToken = tokenizer.next();
+            Expr rhs = parseExpr(rBP);
+            lhs = new Expr.Unary(unaryOp, rhs, opToken);
+        }
+
+        while (true) {
+            BinaryOp binaryOp = getBinaryOpForToken(tokenizer.peek());
+            if (binaryOp != null) {
+                int lBP = infixLeftBindingPower(binaryOp);
+                int rBP = infixRightBindingPower(binaryOp);
+
+                if (lBP < minBP) {
+                    break;
+                }
+
+                tokenizer.next();
+                Expr rhs = parseExpr(rBP);
+
+                lhs = new Expr.Binary(lhs, binaryOp, rhs);
+                continue;
+            }
+
+            break;
+        }
+
+        return lhs;
+    }
+
+    @Nullable
+    private BinaryOp getBinaryOpForToken(TokenType type) {
+        return switch (type) {
+            case PLUS -> BinaryOp.ADD;
+            case MINUS -> BinaryOp.SUB;
+            case STAR -> BinaryOp.MUL;
+            case DIVIDE -> BinaryOp.DIV;
+            case EQUALS -> BinaryOp.EQUALS;
+            case NOT_EQUALS -> BinaryOp.NOT_EQUALS;
+            case LT -> BinaryOp.LT;
+            case LT_EQ -> BinaryOp.LT_EQ;
+            case GT -> BinaryOp.GT;
+            case GT_EQ -> BinaryOp.GT_EQ;
+            case AND -> BinaryOp.AND;
+            case OR -> BinaryOp.OR;
+            default -> null;
+        };
+    }
+
+    @Nullable
+    private UnaryOp getUnaryOpForToken(TokenType type) {
+        return switch (type) {
+            case MINUS -> UnaryOp.NEG;
+            case NOT -> UnaryOp.NOT;
+            default -> null;
+        };
+    }
+
+    private int infixLeftBindingPower(@NotNull BinaryOp op) {
+        return switch (op) {
+            case OR -> 10;
+            case AND -> 20;
+            case EQUALS, NOT_EQUALS, LT, LT_EQ, GT, GT_EQ -> 30;
+            case ADD, SUB -> 40;
+            case MUL, DIV -> 50;
+        };
+    }
+
+    private int infixRightBindingPower(@NotNull BinaryOp op) {
+        return switch (op) {
+            case OR -> 11;
+            case AND -> 21;
+            case EQUALS, NOT_EQUALS, LT, LT_EQ, GT, GT_EQ -> 31;
+            case ADD, SUB -> 41;
+            case MUL, DIV -> 51;
+        };
+    }
+
+    private int prefixRightBindingPower(@NotNull UnaryOp op) {
+        // Only field access, array indexing, and function calls will have higher binding power than us.
+        return switch (op) {
+            case NEG, NOT -> 60;
+        };
     }
 
     private Expr.While parseWhile() {
@@ -133,10 +230,6 @@ public class Parser {
         Expr expr = parseExpr();
         tokenizer.expect(TokenType.RPAREN);
         return expr;
-    }
-
-    public Expr parseExpr() {
-        return exprOr();
     }
 
     private Expr exprAtom() {
@@ -219,97 +312,6 @@ public class Parser {
         }
         var closeParenToken = tokenizer.expect(TokenType.RPAREN);
         return new Expr.Call(tokenizer.getSourceOf(name), args, name, closeParenToken);
-    }
-
-    private Expr exprUnary() {
-        UnaryOp op;
-        switch (tokenizer.peek()) {
-            case MINUS -> op = UnaryOp.NEG;
-            case NOT -> op = UnaryOp.NOT;
-            default -> {
-                return exprAtom();
-            }
-        }
-        var opToken = tokenizer.next();
-
-        Expr expr = exprUnary();
-        return new Expr.Unary(op, expr, opToken);
-    }
-
-    private Expr exprMul() {
-        Expr expr = exprUnary();
-        while (true) {
-            BinaryOp op;
-            switch (tokenizer.peek()) {
-                case STAR -> op = BinaryOp.MUL;
-                case DIVIDE -> op = BinaryOp.DIV;
-                default -> {
-                    return expr;
-                }
-            };
-            tokenizer.next();
-
-            Expr right = exprUnary();
-            expr = new Expr.Binary(expr, op, right);
-        }
-    }
-
-    private Expr exprAdd() {
-        Expr expr = exprMul();
-        while (true) {
-            BinaryOp op;
-            switch (tokenizer.peek()) {
-                case PLUS -> op = BinaryOp.ADD;
-                case MINUS -> op = BinaryOp.SUB;
-                default -> {
-                    return expr;
-                }
-            };
-            tokenizer.next();
-
-            Expr right = exprMul();
-            expr = new Expr.Binary(expr, op, right);
-        }
-    }
-
-    private Expr exprComparison() {
-        Expr expr = exprAdd();
-        while (true) {
-            BinaryOp op;
-            switch (tokenizer.peek()) {
-                case EQUALS -> op = BinaryOp.EQUALS;
-                case NOT_EQUALS -> op = BinaryOp.NOT_EQUALS;
-                case LT_EQ -> op = BinaryOp.LT_EQ;
-                case LT -> op = BinaryOp.LT;
-                case GT_EQ -> op = BinaryOp.GT_EQ;
-                case GT -> op = BinaryOp.GT;
-                default -> {
-                    return expr;
-                }
-            };
-            tokenizer.next();
-
-            Expr right = exprAdd();
-            expr = new Expr.Binary(expr, op, right);
-        }
-    }
-
-    private Expr exprAnd() {
-        Expr expr = exprComparison();
-        while (tokenizer.matchConsume(TokenType.AND)) {
-            Expr right = exprComparison();
-            expr = new Expr.Binary(expr, BinaryOp.AND, right);
-        }
-        return expr;
-    }
-
-    private Expr exprOr() {
-        Expr expr = exprAnd();
-        while (tokenizer.matchConsume(TokenType.OR)) {
-            Expr right = exprAnd();
-            expr = new Expr.Binary(expr, BinaryOp.OR, right);
-        }
-        return expr;
     }
 
     /*
