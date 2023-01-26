@@ -1,5 +1,6 @@
 package org.example.parse;
 
+import org.example.CompilerCtx;
 import org.example.parse.Expr.BinaryOp;
 import org.example.parse.Expr.UnaryOp;
 import org.example.token.Token;
@@ -9,13 +10,18 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
 
 public class Parser {
     private final Tokenizer tokenizer;
+    private final IdentityHashMap<Expr, Token> exprStarts;
+    private final IdentityHashMap<Expr, Token> exprEnds;
 
-    public Parser(Tokenizer tokenizer) {
+    public Parser(Tokenizer tokenizer, CompilerCtx ctx) {
         this.tokenizer = tokenizer;
+        this.exprStarts = ctx.exprStarts;
+        this.exprEnds = ctx.exprEnds;
     }
 
     public Tokenizer getTokenizer() {
@@ -30,6 +36,13 @@ public class Parser {
         return new ParsedFile(tokenizer.getFile(), items);
     }
 
+    /** Records source range info for the expression then returns it. */
+    private <E extends Expr> E hook(E expr, Token start, Token end) {
+        exprStarts.put(expr, start);
+        exprEnds.put(expr, end);
+        return expr;
+    }
+
     public Expr.Block parseBlock() {
         var items = new ArrayList<Expr>();
         var lbraceToken = tokenizer.expect(TokenType.LBRACE);
@@ -41,7 +54,7 @@ public class Parser {
             tokenizer.expect(TokenType.SEMICOLON);
         }
         var rbraceToken = tokenizer.expect(TokenType.RBRACE);
-        return new Expr.Block(items, lbraceToken, rbraceToken);
+        return hook(new Expr.Block(items), lbraceToken, rbraceToken);
     }
 
     private Expr.Item parseTopLevelItem() {
@@ -74,7 +87,7 @@ public class Parser {
             int rBP = prefixRightBindingPower(unaryOp);
             Token opToken = tokenizer.next();
             Expr rhs = parseExpr(rBP);
-            lhs = new Expr.Unary(unaryOp, rhs, opToken);
+            lhs = hook(new Expr.Unary(unaryOp, rhs), opToken, exprEnds.get(rhs));
         }
 
         while (true) {
@@ -90,7 +103,7 @@ public class Parser {
                 tokenizer.next();
                 Expr rhs = parseExpr(rBP);
 
-                lhs = new Expr.Binary(lhs, binaryOp, rhs);
+                lhs = hook(new Expr.Binary(lhs, binaryOp, rhs), exprStarts.get(lhs), exprEnds.get(rhs));
                 continue;
             }
 
@@ -159,13 +172,14 @@ public class Parser {
         var whileToken = tokenizer.expect(TokenType.K_WHILE);
         Expr condition = parseParenExpr();
         Expr.Block body = parseBlock();
-        return new Expr.While(condition, body, whileToken);
+        return hook(new Expr.While(condition, body), whileToken, exprEnds.get(body));
     }
 
     private Expr.If parseIf() {
-        var ifToken = tokenizer.expect(TokenType.K_IF);
+        var startToken = tokenizer.expect(TokenType.K_IF);
         Expr condition = parseParenExpr();
         Expr.Block thenBranch = parseBlock();
+        Token endToken = exprEnds.get(thenBranch);
         List<Expr.ElseIf> elseIfs = new ArrayList<>();
         Expr.Block elseBranch = null;
         while (tokenizer.matchConsume(TokenType.K_ELSE)) {
@@ -173,14 +187,16 @@ public class Parser {
                 Expr elseifCond = parseParenExpr();
                 Expr.Block elseifBody = parseBlock();
                 elseIfs.add(new Expr.ElseIf(elseifCond, elseifBody));
+                endToken = exprEnds.get(elseifBody);
             } else if (tokenizer.peek() == TokenType.LBRACE) {
                 elseBranch = parseBlock();
+                endToken = exprEnds.get(elseBranch);
                 break;
             } else {
                 throw tokenizer.reportWrongTokenType(TokenType.K_IF, TokenType.LBRACE);
             }
         }
-        return new Expr.If(condition, thenBranch, elseIfs, elseBranch, ifToken);
+        return hook(new Expr.If(condition, thenBranch, elseIfs, elseBranch), startToken, endToken);
     }
 
     private Expr.Function parseFunction() {
@@ -208,7 +224,7 @@ public class Parser {
             returnType = parseType();
         }
         Expr.Block body = parseBlock();
-        return new Expr.Function(name, tokenizer.getSourceOf(name), returnType, params, body, funcToken);
+        return hook(new Expr.Function(tokenizer.getSourceOf(name), returnType, params, body), funcToken, exprEnds.get(body));
     }
 
     private Expr.Let parseLet() {
@@ -218,7 +234,7 @@ public class Parser {
         TypeExpr type = parseType();
         tokenizer.expect(TokenType.ASSIGN);
         Expr value = parseExpr();
-        return new Expr.Let(name, tokenizer.getSourceOf(name), type, value, letToken);
+        return hook(new Expr.Let(tokenizer.getSourceOf(name), type, value), letToken, exprEnds.get(value));
     }
 
     private TypeExpr parseType() {
@@ -254,7 +270,7 @@ public class Parser {
             }
             case NUMBER -> {
                 var token = tokenizer.next();
-                return new Expr.Number(tokenizer.getSourceOf(token), token);
+                return hook(new Expr.Number(tokenizer.getSourceOf(token)), token, token);
             }
             case IDENTIFIER -> {
                 Token ident = tokenizer.next();
@@ -264,15 +280,15 @@ public class Parser {
                 if (tokenizer.peek() == TokenType.ASSIGN) {
                     return parseAssign(ident);
                 }
-                return new Expr.Identifier(tokenizer.getSourceOf(ident), ident);
+                return hook(new Expr.Identifier(tokenizer.getSourceOf(ident)), ident, ident);
             }
             case K_TRUE -> {
                 var token = tokenizer.next();
-                return new Expr.Boolean(true, token);
+                return hook(new Expr.Boolean(true), token, token);
             }
             case K_FALSE -> {
                 var token = tokenizer.next();
-                return new Expr.Boolean(false, token);
+                return hook(new Expr.Boolean(false), token, token);
             }
             case K_RETURN -> {
                 var returnToken = tokenizer.next();
@@ -280,7 +296,7 @@ public class Parser {
                 if (tokenizer.peek() != TokenType.SEMICOLON) {
                     retValue = parseExpr();
                 }
-                return new Expr.Return(retValue, returnToken);
+                return hook(new Expr.Return(retValue), returnToken, retValue != null ? exprEnds.get(retValue) : returnToken);
             }
             default -> {
                 throw tokenizer.reportWrongTokenType(TokenType.LBRACE, TokenType.K_LET, TokenType.K_FUNC, TokenType.K_WHILE, TokenType.K_IF, TokenType.LPAREN, TokenType.NUMBER, TokenType.IDENTIFIER, TokenType.K_FALSE, TokenType.K_TRUE, TokenType.K_RETURN);
@@ -291,7 +307,7 @@ public class Parser {
     private Expr parseAssign(Token lhs) {
         tokenizer.expect(TokenType.ASSIGN);
         Expr value = parseExpr();
-        return new Expr.Assign(tokenizer.getSourceOf(lhs), value, lhs);
+        return hook(new Expr.Assign(tokenizer.getSourceOf(lhs), value), lhs, exprEnds.get(value));
     }
 
     private Expr parseCall(Token name) {
@@ -311,7 +327,7 @@ public class Parser {
             }
         }
         var closeParenToken = tokenizer.expect(TokenType.RPAREN);
-        return new Expr.Call(tokenizer.getSourceOf(name), args, name, closeParenToken);
+        return hook(new Expr.Call(tokenizer.getSourceOf(name), args), name, closeParenToken);
     }
 
     /*

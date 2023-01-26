@@ -16,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,6 +36,9 @@ public class CompilerCtx {
     private final Map<Integer, FileInfo> files = new LinkedHashMap<>();
 
     public final SymbolTable symbols = new SymbolTable();
+
+    public final IdentityHashMap<Expr, Token> exprStarts = new IdentityHashMap<>();
+    public final IdentityHashMap<Expr, Token> exprEnds = new IdentityHashMap<>();
 
     public CompilerCtx() {
 
@@ -59,7 +63,7 @@ public class CompilerCtx {
     }
 
     public Parser createParser(FileInfo file) {
-        return new Parser(createTokenizer(file));
+        return new Parser(createTokenizer(file), this);
     }
 
     private SourceLoc getSourceLocation(FileInfo file, int offset) {
@@ -92,8 +96,12 @@ public class CompilerCtx {
     }
 
     public SourceSpan getSourceSpan(Expr expr) {
-        Expr.TokenRange range = expr.getTokenRange();
-        return getSourceSpan(range.fileUid(), range.startOffset(), range.endOffset());
+        Token start = exprStarts.get(expr);
+        Token end = exprEnds.get(expr);
+        if (start.fileUid() != end.fileUid()) {
+            throw new IllegalStateException("start and end tokens are in different files");
+        }
+        return getSourceSpan(start.fileUid(), start.startOffset(), end.endOffset());
     }
 
     public FileInfo getFile(int fileUid) {

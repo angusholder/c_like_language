@@ -8,33 +8,18 @@ import java.util.List;
 public sealed interface Expr {
 
     record Number(
-            String text,
-            Token token
+            String text
     ) implements Expr {
-        @Override
-        public TokenRange getTokenRange() {
-            return new TokenRange(token, token);
-        }
     }
 
     record Boolean(
-            boolean value,
-            Token token
+            boolean value
     ) implements Expr {
-        @Override
-        public TokenRange getTokenRange() {
-            return new TokenRange(token, token);
-        }
     }
 
     record Identifier(
-            String text,
-            Token token
+            String text
     ) implements Expr {
-        @Override
-        public TokenRange getTokenRange() {
-            return new TokenRange(token, token);
-        }
     }
 
     record Binary(
@@ -42,10 +27,6 @@ public sealed interface Expr {
             BinaryOp op,
             Expr right
     ) implements Expr {
-        @Override
-        public TokenRange getTokenRange() {
-            return new TokenRange(left.getTokenRange().start(), right.getTokenRange().end());
-        }
     }
 
     enum BinaryOp {
@@ -68,13 +49,8 @@ public sealed interface Expr {
 
     record Unary(
             UnaryOp op,
-            Expr expr,
-            Token opToken
+            Expr expr
     ) implements Expr {
-        @Override
-        public TokenRange getTokenRange() {
-            return new TokenRange(opToken, expr.getTokenRange().end());
-        }
     }
 
     enum UnaryOp {
@@ -84,25 +60,13 @@ public sealed interface Expr {
 
     record Call(
             String callee,
-            List<Expr> arguments,
-            Token calleeToken,
-            Token closeParenToken
+            List<Expr> arguments
     ) implements Expr {
-        @Override
-        public TokenRange getTokenRange() {
-            return new TokenRange(calleeToken, closeParenToken);
-        }
     }
 
     record Block(
-            List<Expr> items,
-            Token openBraceToken,
-            Token closeBraceToken
+            List<Expr> items
     ) implements Expr {
-        @Override
-        public TokenRange getTokenRange() {
-            return new TokenRange(openBraceToken, closeBraceToken);
-        }
     }
 
     record If(
@@ -110,21 +74,8 @@ public sealed interface Expr {
             Expr.Block thenBranch,
             List<ElseIf> elseIfs,
             @Nullable
-            Expr.Block elseBranch,
-            Token ifToken
+            Expr.Block elseBranch
     ) implements Expr {
-        @Override
-        public TokenRange getTokenRange() {
-            Token lastBraceToken;
-            if (elseBranch != null) {
-                lastBraceToken = elseBranch.getTokenRange().end();
-            } else if (!elseIfs.isEmpty()) {
-                lastBraceToken = elseIfs.get(elseIfs.size() - 1).thenBranch.getTokenRange().end();
-            } else {
-                lastBraceToken = thenBranch.getTokenRange().end();
-            }
-            return new TokenRange(ifToken, lastBraceToken);
-        }
     }
 
     record ElseIf(
@@ -134,28 +85,17 @@ public sealed interface Expr {
 
     record While(
             Expr condition,
-            Expr.Block body,
-            Token whileToken
+            Expr.Block body
     ) implements Expr {
-        @Override
-        public TokenRange getTokenRange() {
-            return new TokenRange(whileToken, body.getTokenRange().end());
-        }
     }
 
     record Function(
-            Token nameToken,
             String name,
             @Nullable
             TypeExpr returnType,
             List<FuncParam> parameters,
-            Expr.Block body,
-            Token funcToken
+            Expr.Block body
     ) implements Item {
-        @Override
-        public TokenRange getTokenRange() {
-            return new TokenRange(funcToken, body.getTokenRange().end());
-        }
     }
 
     record FuncParam(
@@ -164,16 +104,10 @@ public sealed interface Expr {
     ) {}
 
     record Let(
-            Token nameToken,
             String name,
             TypeExpr type,
-            Expr value,
-            Token letToken
+            Expr value
     ) implements Item {
-        @Override
-        public TokenRange getTokenRange() {
-            return new TokenRange(letToken, value.getTokenRange().end());
-        }
     }
 
     /** The subset of expressions that are allowed at the top level in a file. */
@@ -182,57 +116,13 @@ public sealed interface Expr {
 
     record Assign(
             String lhs,
-            Expr rhs,
-            Token lhsToken
+            Expr rhs
     ) implements Expr {
-        @Override
-        public TokenRange getTokenRange() {
-            return new TokenRange(lhsToken, rhs.getTokenRange().end());
-        }
     }
 
     record Return(
             @Nullable
-            Expr returnValue,
-            Token returnToken
+            Expr returnValue
     ) implements Expr {
-        @Override
-        public TokenRange getTokenRange() {
-            Token endToken;
-            if (returnValue != null) {
-                endToken = returnValue.getTokenRange().end();
-            } else {
-                endToken = returnToken;
-            }
-            return new TokenRange(returnToken, endToken);
-        }
     }
-
-    record TokenRange(
-            Token start,
-            Token end
-    ) {
-        public TokenRange {
-            if (start.fileUid() != end.fileUid()) {
-                throw new IllegalArgumentException("Tokens must be from the same file: " + start.fileUid() + ", " + end.fileUid());
-            }
-            if (start.startOffset() > end.endOffset()) {
-                throw new IllegalArgumentException("Start token must be before end token: " + start.startOffset() + ", " + end.endOffset());
-            }
-        }
-
-        public int fileUid() {
-            return start.fileUid();
-        }
-
-        public int startOffset() {
-            return start.startOffset();
-        }
-
-        public int endOffset() {
-            return end.endOffset();
-        }
-    }
-
-    TokenRange getTokenRange();
 }
