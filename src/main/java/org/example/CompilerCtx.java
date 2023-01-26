@@ -143,6 +143,13 @@ public class CompilerCtx {
         new PrintAst().visit(file);
     }
 
+    /** Helper method for testing out the parser. */
+    public static Expr parseExpr(String source) {
+        var ctx = new CompilerCtx();
+        Parser parser = ctx.createParser(ctx.addInMemoryFile("anon-file", source));
+        return parser.parseExpr();
+    }
+
     /** Helper method for testing out the type checker. */
     public static void checkTypes(String source) {
         var ctx = new CompilerCtx();
