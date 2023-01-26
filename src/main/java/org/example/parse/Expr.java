@@ -1,9 +1,9 @@
 package org.example.parse;
 
-import org.example.token.Token;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public sealed interface Expr {
 
@@ -124,5 +124,51 @@ public sealed interface Expr {
             @Nullable
             Expr returnValue
     ) implements Expr {
+    }
+
+    static void traverseAll(Expr firstExpr, Consumer<Expr> callback) {
+        callback.accept(firstExpr);
+        switch (firstExpr) {
+            case Binary binary -> {
+                traverseAll(binary.left(), callback);
+                traverseAll(binary.right(), callback);
+            }
+            case Unary unary -> traverseAll(unary.expr(), callback);
+            case Call call -> call.arguments().forEach(arg -> traverseAll(arg, callback));
+            case Block block -> block.items().forEach(item -> traverseAll(item, callback));
+            case If anIf -> {
+                traverseAll(anIf.condition(), callback);
+                traverseAll(anIf.thenBranch(), callback);
+                anIf.elseIfs().forEach(elseIf -> {
+                    traverseAll(elseIf.condition(), callback);
+                    traverseAll(elseIf.thenBranch(), callback);
+                });
+                if (anIf.elseBranch() != null) {
+                    traverseAll(anIf.elseBranch(), callback);
+                }
+            }
+            case While aWhile -> {
+                traverseAll(aWhile.condition(), callback);
+                traverseAll(aWhile.body(), callback);
+            }
+            case Function function -> {
+                traverseAll(function.body(), callback);
+            }
+            case Let let -> {
+                traverseAll(let.value(), callback);
+            }
+            case Assign assign -> traverseAll(assign.rhs(), callback);
+            case Return ret -> {
+                if (ret.returnValue() != null) {
+                    traverseAll(ret.returnValue(), callback);
+                }
+            }
+            case Boolean ignored -> {
+            }
+            case Identifier ignored -> {
+            }
+            case Number ignored -> {
+            }
+        }
     }
 }

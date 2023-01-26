@@ -108,6 +108,23 @@ public class CompilerCtx {
         return files.get(fileUid);
     }
 
+    public void checkSourceRangeInfoIsPresent(ParsedFile file) {
+        for (Expr.Item item : file.items()) {
+            checkSourceRangeInfoIsPresent(item);
+        }
+    }
+
+    public void checkSourceRangeInfoIsPresent(Expr firstExpr) {
+        Expr.traverseAll(firstExpr, expr -> {
+            if (!exprStarts.containsKey(expr)) {
+                throw new IllegalStateException("missing start token for " + expr);
+            }
+            if (!exprEnds.containsKey(expr)) {
+                throw new IllegalStateException("missing end token for " + expr);
+            }
+        });
+    }
+
     /** Helper method for testing out the Tokenizer. */
     public static void printTokens(String source) {
         var ctx = new CompilerCtx();
