@@ -187,8 +187,21 @@ public class Tokenizer {
             }
             default -> {
                 if (Character.isJavaIdentifierStart(cur)) {
-                    while (hasMoreChars() && (Character.isJavaIdentifierPart(peekChar()) || peekChar() == '-')) {
-                        nextChar();
+                    var sawQuestion = false;
+                    while (hasMoreChars()) {
+                        var ch = peekChar();
+                        if (Character.isJavaIdentifierPart(ch) || ch == '-' || ch == '?') {
+                            if (sawQuestion) {
+                                // The identifier should have ended at the '?'.
+                                throw reportUnexpected();
+                            }
+                            if (ch == '?') {
+                                sawQuestion = true;
+                            }
+                            nextChar();
+                        } else {
+                            break;
+                        }
                     }
                     return makeToken(getKeywordType(getCurrentSpan()));
                 }

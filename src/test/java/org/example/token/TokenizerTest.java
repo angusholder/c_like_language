@@ -15,6 +15,7 @@ public class TokenizerTest {
         = ==
         func while if else true false
         my-variable as-many-dashes-as-I-want
+        has-more-chars? finished? listEmpty?
         """);
     }
 

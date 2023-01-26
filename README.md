@@ -29,6 +29,10 @@ func ifExpression() -> i32 {
 }
 ```
 
+## Features
+- `kebab-case` identifiers
+- Question mark suffixes on identifiers, like `empty?`, or `more-chars?`
+
 # Useful resources:
 
 - [X64 instruction reference](https://www.felixcloutier.com/x86/)
