@@ -100,15 +100,6 @@ public class SymbolTable {
     }
 
     @NotNull
-    public TypeInfo lookupTypeRef(TypeExpr type) {
-        TypeInfo typeInfo = resolvedTypeRefs.get(type);
-        if (typeInfo == null) {
-            throw new IllegalStateException("Type ref " + type + " was not resolved.");
-        }
-        return typeInfo;
-    }
-
-    @NotNull
     public Symbol lookupSymbol(String name) {
         for (int i = scopes.size() - 1; i >= 0; i--) {
             Scope scope = scopes.get(i);
@@ -153,15 +144,6 @@ public class SymbolTable {
         resolvedCallSites.put(call, function);
     }
 
-    @NotNull
-    public Symbol.Function lookupCallSite(Expr.Call call) {
-        Symbol.Function function = resolvedCallSites.get(call);
-        if (function == null) {
-            throw new IllegalStateException("Callsite " + call + " was not resolved.");
-        }
-        return function;
-    }
-
     private void addSymbol(Symbol symbol) {
         Scope scope = getCurrentScope();
         scope.valuesNamespace.put(symbol.name(), symbol);
@@ -198,5 +180,48 @@ public class SymbolTable {
             throw new IllegalStateException("No scopes");
         }
         return scopes.get(scopes.size() - 1);
+    }
+
+    public record Symbols(
+            IdentityHashMap<Expr, TypeInfo> resolvedExprTypes,
+            IdentityHashMap<Expr.Call, Symbol.Function> resolvedCallSites,
+            IdentityHashMap<TypeExpr, TypeInfo> resolvedTypeRefs,
+            IdentityHashMap<Expr.Function, Symbol.Function> resolvedFunctions
+    ) {
+        @NotNull
+        public Symbol.Function lookupCallSite(Expr.Call call) {
+            Symbol.Function function = resolvedCallSites.get(call);
+            if (function == null) {
+                throw new IllegalStateException("Callsite " + call + " was not resolved.");
+            }
+            return function;
+        }
+
+        @NotNull
+        public TypeInfo lookupTypeRef(TypeExpr type) {
+            TypeInfo typeInfo = resolvedTypeRefs.get(type);
+            if (typeInfo == null) {
+                throw new IllegalStateException("Type ref " + type + " was not resolved.");
+            }
+            return typeInfo;
+        }
+
+        @NotNull
+        public Symbol.Function lookupFunction(Expr.Function funcAst) {
+            Symbol.Function function = resolvedFunctions.get(funcAst);
+            if (function == null) {
+                throw new IllegalStateException("Function " + funcAst + " was not resolved.");
+            }
+            return function;
+        }
+
+        @NotNull
+        public TypeInfo lookupExprType(Expr expr) {
+            TypeInfo typeInfo = resolvedExprTypes.get(expr);
+            if (typeInfo == null) {
+                throw new IllegalStateException("Expr " + expr + " was not resolved.");
+            }
+            return typeInfo;
+        }
     }
 }
