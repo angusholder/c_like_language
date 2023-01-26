@@ -187,7 +187,7 @@ public class Tokenizer {
             }
             default -> {
                 if (Character.isJavaIdentifierStart(cur)) {
-                    while (hasMoreChars() && Character.isJavaIdentifierPart(peekChar())) {
+                    while (hasMoreChars() && (Character.isJavaIdentifierPart(peekChar()) || peekChar() == '-')) {
                         nextChar();
                     }
                     return makeToken(getKeywordType(getCurrentSpan()));
