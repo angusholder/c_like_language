@@ -13,16 +13,14 @@ import java.util.Map;
 
 public class SymbolTable {
 
-    private final Scope globalScope = Scope.createGlobal();
-
     private final List<Scope> scopes = new ArrayList<>();
     private final IdentityHashMap<Expr, TypeInfo> resolvedExprTypes = new IdentityHashMap<>();
     private final IdentityHashMap<Expr.Call, Symbol.Function> resolvedCallSites = new IdentityHashMap<>();
     private final IdentityHashMap<TypeExpr, TypeInfo> resolvedTypeRefs = new IdentityHashMap<>();
-    private final IdentityHashMap<Expr.Function, Symbol.Function> resolvedFunctions = new IdentityHashMap<>();
+    private final IdentityHashMap<Expr.Function, Symbol.Function> functionDeclarations = new IdentityHashMap<>();
+    private final IdentityHashMap<Symbol.Function, FunctionScope> functionScopes = new IdentityHashMap<>();
 
     public SymbolTable() {
-        scopes.add(globalScope);
     }
 
     public static class Scope {
@@ -30,10 +28,21 @@ public class SymbolTable {
         // TODO: Separate symbol list for functions?
         final Map<String, Symbol> valuesNamespace = new LinkedHashMap<>();
         @Nullable
-        Symbol.Function currentFunction = null;
+        final SymbolTable.FunctionScope functionScope;
+
+        public Scope(@Nullable SymbolTable.FunctionScope function) {
+            this.functionScope = function;
+        }
+
+        @Override
+        public String toString() {
+            return "Scope{" +
+                    "currentFunction=" + functionScope +
+                    '}';
+        }
 
         public static Scope createGlobal() {
-            Scope globalScope = new Scope();
+            Scope globalScope = new Scope(null);
             globalScope.typesNamespace.put("i32", TypeInfo.I32);
             globalScope.typesNamespace.put("f32", TypeInfo.F32);
             globalScope.typesNamespace.put("bool", TypeInfo.BOOL);
@@ -42,35 +51,58 @@ public class SymbolTable {
         }
     }
 
-    public void pushScope() {
-        Scope scope = new Scope();
+    public static class FunctionScope {
+        public final Symbol.Function symbol;
+        public final List<Symbol.Var> locals = new ArrayList<>();
+
+        public FunctionScope(Symbol.Function symbol) {
+            this.symbol = symbol;
+        }
+    }
+
+    public void pushGlobalScope() {
+        Scope scope = Scope.createGlobal();
+        scopes.add(scope);
+    }
+
+    public void pushFunctionScope(Symbol.Function symbol) {
+        FunctionScope functionScope = new FunctionScope(symbol);
+        functionScopes.put(symbol, functionScope);
+        Scope scope = new Scope(functionScope);
+        scopes.add(scope);
+
+        List<Symbol.FunctionParam> params = symbol.params();
+        for (int i = 0; i < params.size(); i++) {
+            Symbol.FunctionParam param = params.get(i);
+            addSymbol(new Symbol.Param(param.name(), param.type(), symbol, i));
+        }
+    }
+
+    public void pushBlockScope() {
+        Scope scope = new Scope(expectCurrentFunction());
         scopes.add(scope);
     }
 
     public void popScope() {
-        if (scopes.size() == 1) {
-            throw new IllegalStateException("Cannot pop global scope");
+        if (scopes.size() == 0) {
+            throw new IllegalStateException("There's no scope to pop");
         }
         scopes.remove(scopes.size() - 1);
     }
 
-    public void setFunctionScope(Symbol.Function function) {
-        Scope scope = getCurrentScope();
-        if (scope == globalScope) {
-            throw new IllegalStateException("Cannot set function scope in global scope");
-        }
-        if (scope.currentFunction != null) {
-            throw new IllegalStateException("This scope already belongs to a function: " + scope.currentFunction);
-        }
-        scope.currentFunction = function;
-        for (Symbol.FunctionParam param : function.params()) {
-            addParamSymbol(param.name(), param.type());
-        }
+    @Nullable
+    public Symbol.Function getCurrentFunctionSymbol() {
+        var current = getCurrentScope().functionScope;
+        return current == null ? null : current.symbol;
     }
 
-    @Nullable
-    public Symbol.Function getCurrentFunction() {
-        return getCurrentScope().currentFunction;
+    @NotNull
+    public SymbolTable.FunctionScope expectCurrentFunction() {
+        Scope scope = getCurrentScope();
+        if (scope.functionScope != null) {
+            return scope.functionScope;
+        }
+        throw new IllegalStateException("This scope does not belong to a function: " + scope);
     }
 
     @NotNull
@@ -147,28 +179,28 @@ public class SymbolTable {
     private void addSymbol(Symbol symbol) {
         Scope scope = getCurrentScope();
         scope.valuesNamespace.put(symbol.name(), symbol);
-    }
-
-    public void addVariableSymbol(String name, TypeInfo type) {
-        if (getCurrentScope() == globalScope) {
-            addSymbol(new Symbol.Global(name, type));
-        } else {
-            addSymbol(new Symbol.Local(name, type));
+        if (symbol instanceof Symbol.Var var) {
+            expectCurrentFunction().locals.add(var);
         }
     }
 
-    public void addParamSymbol(String name, TypeInfo type) {
-        addSymbol(new Symbol.Param(name, type));
+    public void addVariableSymbol(String name, TypeInfo type) {
+        Scope scope = getCurrentScope();
+        if (scope.functionScope == null) {
+            addSymbol(new Symbol.Global(name, type));
+        } else {
+            addSymbol(new Symbol.Local(name, type, scope.functionScope.symbol));
+        }
     }
 
     public void addFunctionSymbol(Expr.Function funcAst, List<Symbol.FunctionParam> params, TypeInfo returnType) {
         var symbol = new Symbol.Function(funcAst.name(), params, returnType);
         addSymbol(symbol);
-        resolvedFunctions.put(funcAst, symbol);
+        functionDeclarations.put(funcAst, symbol);
     }
 
     public Symbol.Function lookupFunction(Expr.Function funcAst) {
-        Symbol.Function function = resolvedFunctions.get(funcAst);
+        Symbol.Function function = functionDeclarations.get(funcAst);
         if (function == null) {
             throw new IllegalStateException("Function " + funcAst + " was not resolved.");
         }

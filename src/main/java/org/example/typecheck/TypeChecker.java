@@ -18,7 +18,12 @@ public class TypeChecker {
     }
 
     public void checkFile(ParsedFile file) {
-        resolveExprList(file.items());
+        table.pushGlobalScope();
+        try {
+            resolveExprList(file.items());
+        } finally {
+            table.popScope();
+        }
     }
 
     public <T extends Expr> void resolveExprList(List<T> exprList) {
@@ -100,7 +105,7 @@ public class TypeChecker {
                 } else {
                     returnType = TypeInfo.VOID;
                 }
-                Symbol.Function currentFunction = table.getCurrentFunction();
+                Symbol.Function currentFunction = table.getCurrentFunctionSymbol();
                 if (currentFunction == null) {
                     throw new IllegalStateException("Return statement outside of function");
                 }
@@ -153,16 +158,17 @@ public class TypeChecker {
     }
 
     private TypeInfo checkBlock(Expr.Block block) {
-        if (block.items().isEmpty()) {
-            return TypeInfo.VOID;
-        } else {
-            table.pushScope();
+        table.pushBlockScope();
+        try {
             resolveExprList(block.items());
 
-            TypeInfo lastExprType = resolveExpr(block.items().get(block.items().size() - 1));
+            if (block.items().isEmpty()) {
+                return TypeInfo.VOID;
+            } else {
+                return resolveExpr(block.items().get(block.items().size() - 1));
+            }
+        } finally {
             table.popScope();
-
-            return lastExprType;
         }
     }
 
@@ -218,13 +224,15 @@ public class TypeChecker {
 
     @NotNull
     private TypeInfo checkFunctionBody(Expr.Function function) {
-        table.pushScope();
         Symbol.Function funcSymbol = table.lookupFunction(function);
-        table.setFunctionScope(funcSymbol);
-        for (Expr item : function.body().items()) {
-            resolveExpr(item);
+        table.pushFunctionScope(funcSymbol);
+        try {
+            for (Expr item : function.body().items()) {
+                resolveExpr(item);
+            }
+        } finally {
+            table.popScope();
         }
-        table.popScope();
 
         return TypeInfo.VOID;
     }
