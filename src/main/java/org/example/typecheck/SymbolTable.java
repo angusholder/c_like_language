@@ -93,7 +93,7 @@ public class SymbolTable {
         List<Symbol.FunctionParam> params = symbol.params();
         for (int i = 0; i < params.size(); i++) {
             Symbol.FunctionParam param = params.get(i);
-            addSymbol(new Symbol.Param(param.name().text(), param.type(), symbol, i, functionScope.locals.size()), param.name());
+            addSymbol(scope, new Symbol.Param(param.name().text(), param.type(), symbol, i, functionScope.locals.size()), param.name());
         }
     }
 
@@ -191,8 +191,7 @@ public class SymbolTable {
         resolvedCallSites.put(call, function);
     }
 
-    private void addSymbol(Symbol symbol, Expr.Identifier identifier) {
-        Scope scope = getCurrentScope();
+    private void addSymbol(Scope scope, Symbol symbol, Expr.Identifier identifier) {
         scope.valuesNamespace.put(symbol.name(), symbol);
         if (symbol instanceof Symbol.Var var) {
             FunctionScope functionScope = scope.expectFunction();
@@ -208,15 +207,15 @@ public class SymbolTable {
     public void addVariableSymbol(Expr.Identifier name, TypeInfo type) {
         Scope scope = getCurrentScope();
         if (scope.functionScope == null) {
-            addSymbol(new Symbol.Global(name.text(), type), name);
+            addSymbol(scope, new Symbol.Global(name.text(), type), name);
         } else {
-            addSymbol(new Symbol.Local(name.text(), type, scope.functionScope.symbol, scope.functionScope.locals.size()), name);
+            addSymbol(scope, new Symbol.Local(name.text(), type, scope.functionScope.symbol, scope.functionScope.locals.size()), name);
         }
     }
 
     public void addFunctionSymbol(Expr.Function funcAst, List<Symbol.FunctionParam> params, TypeInfo returnType) {
         var symbol = new Symbol.Function(funcAst.name().text(), params, returnType);
-        addSymbol(symbol, funcAst.name());
+        addSymbol(getCurrentScope(), symbol, funcAst.name());
         functionDeclarations.put(funcAst, symbol);
     }
 
