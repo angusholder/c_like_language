@@ -9,6 +9,7 @@ import org.example.typecheck.TypeInfo;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
+import java.util.List;
 import java.util.Objects;
 
 public class TreeInterpreter {
@@ -44,8 +45,8 @@ public class TreeInterpreter {
         return fileScope.symbols().lookupFunctionScope(entrypoint);
     }
 
-    public void interpretFromEntrypoint() {
-        eval(currentFrame.function.expr.body());
+    public Object interpretFromEntrypoint() {
+        return eval(currentFrame.function.expr.body());
     }
 
     @Nullable
@@ -120,7 +121,7 @@ public class TreeInterpreter {
                     yield voidValue();
                 }
 
-                throw new UnsupportedOperationException("Function calls are not supported yet: " + call);
+                yield doFunctionCall(callSite, call.arguments());
             }
             case Expr.Identifier identifier -> {
                 Symbol.Value symbol = fileScope.symbols().lookupValue(identifier);
@@ -150,7 +151,12 @@ public class TreeInterpreter {
                 yield Integer.parseInt(number.text());
             }
             case Expr.Return aReturn -> {
-                throw new UnsupportedOperationException("Return statements are not supported yet: " + aReturn);
+                Symbol.Function function = currentFrame.function.symbol;
+                if (aReturn.returnValue() != null) {
+                    throw new ReturnException(eval(aReturn.returnValue()), function);
+                } else {
+                    throw new ReturnException(voidValue(), function);
+                }
             }
             case Expr.Unary unary -> {
                 Object inner = eval(unary.expr());
@@ -183,5 +189,43 @@ public class TreeInterpreter {
                 };
             }
         };
+    }
+
+    private Object doFunctionCall(Symbol.Function callSite, List<Expr> arguments) {
+        SymbolTable.FunctionScope functionScope = fileScope.symbols().lookupFunctionScope(callSite);
+        callStack.push(currentFrame);
+        StackFrame newFrame = new StackFrame(functionScope);
+        for (int i = 0; i < functionScope.params.length; i++) {
+            Symbol.Param param = functionScope.params[i];
+            Expr arg = arguments.get(i);
+            newFrame.locals[param.localIndex()] = eval(arg);
+        }
+
+        currentFrame = newFrame;
+        try {
+            return interpretFromEntrypoint();
+        } catch (ReturnException e) {
+            if (!e.function.equals(callSite)) {
+                throw new IllegalStateException("Return from function " + e.function + " but expected return from " + callSite, e);
+            }
+            return e.returnValue;
+        } finally {
+            currentFrame = callStack.pop();
+        }
+    }
+
+    /**
+     * Internal to this interpreter, used to implement return statements.
+     */
+    private static class ReturnException extends RuntimeException {
+        /** The value to be returned from this function call, or voidValue() if it's a void-returning function. */
+        final Object returnValue;
+        /** For sanity checking, ensure our return matches with the expected function call. */
+        final Symbol.Function function;
+
+        public ReturnException(Object returnValue, Symbol.Function function) {
+            this.returnValue = returnValue;
+            this.function = function;
+        }
     }
 }

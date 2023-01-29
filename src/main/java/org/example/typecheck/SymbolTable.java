@@ -64,10 +64,12 @@ public class SymbolTable {
         public final Symbol.Function symbol;
         public final Expr.Function expr;
         public final List<Symbol.Var> locals = new ArrayList<>();
+        public final Symbol.Param[] params;
 
         public FunctionScope(Symbol.Function symbol, Expr.Function expr) {
             this.symbol = symbol;
             this.expr = expr;
+            this.params = new Symbol.Param[symbol.params().size()];
         }
     }
 
@@ -197,6 +199,9 @@ public class SymbolTable {
             FunctionScope functionScope = scope.expectFunction();
             assert var.localIndex() == functionScope.locals.size();
             functionScope.locals.add(var);
+            if (symbol instanceof Symbol.Param param) {
+                functionScope.params[param.paramIndex()] = param;
+            }
             resolvedVarSymbols.put(identifier, var);
         }
     }

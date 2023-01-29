@@ -12,9 +12,13 @@ public class TreeInterpreterTest {
             func printlnBool(a: bool) {}
 
             func main() {
+                fibonacci(10000);
+            }
+
+            func fibonacci(limit: i32) {
                 let a: i32 = 0;
                 let b: i32 = 1;
-                while (a < 1000) {
+                while (a < limit) {
                     println(a);
                     let temp: i32 = a + b;
                     a = b;
