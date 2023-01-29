@@ -19,7 +19,6 @@ public class SymbolTable {
     private final IdentityHashMap<Expr.Call, Symbol.Function> resolvedCallSites = new IdentityHashMap<>();
     private final IdentityHashMap<TypeExpr, TypeInfo> resolvedTypeRefs = new IdentityHashMap<>();
     private final IdentityHashMap<Expr.Function, Symbol.Function> functionDeclarations = new IdentityHashMap<>();
-    private final IdentityHashMap<Symbol.Function, Expr.Function> functionDeclarationsRev = new IdentityHashMap<>();
     private final IdentityHashMap<Symbol.Function, FunctionScope> functionScopes = new IdentityHashMap<>();
 
     public SymbolTable() {
@@ -219,7 +218,6 @@ public class SymbolTable {
         var symbol = new Symbol.Function(funcAst.name().text(), params, returnType);
         addSymbol(symbol, funcAst.name());
         functionDeclarations.put(funcAst, symbol);
-        functionDeclarationsRev.put(symbol, funcAst);
     }
 
     public Symbol.Function lookupFunction(Expr.Function funcAst) {
@@ -241,8 +239,6 @@ public class SymbolTable {
             IdentityHashMap<Expr, TypeInfo> resolvedExprTypes,
             IdentityHashMap<Expr.Identifier, Symbol.Value> resolvedVarSymbols,
             IdentityHashMap<Expr.Call, Symbol.Function> resolvedCallSites,
-            IdentityHashMap<Expr.Function, Symbol.Function> functionDeclarations,
-            IdentityHashMap<Symbol.Function, Expr.Function> functionDeclarationsRev,
             IdentityHashMap<Symbol.Function, FunctionScope> functionScopes
     ) {
         public static Symbols fromTable(SymbolTable table) {
@@ -250,8 +246,6 @@ public class SymbolTable {
                     new IdentityHashMap<>(table.resolvedExprTypes),
                     new IdentityHashMap<>(table.resolvedVarSymbols),
                     new IdentityHashMap<>(table.resolvedCallSites),
-                    new IdentityHashMap<>(table.functionDeclarations),
-                    new IdentityHashMap<>(table.functionDeclarationsRev),
                     new IdentityHashMap<>(table.functionScopes)
             );
         }
@@ -270,24 +264,6 @@ public class SymbolTable {
             Symbol.Function function = resolvedCallSites.get(call);
             if (function == null) {
                 throw new IllegalStateException("Callsite " + call + " was not resolved.");
-            }
-            return function;
-        }
-
-        @NotNull
-        public Symbol.Function lookupFunction(Expr.Function funcAst) {
-            Symbol.Function function = functionDeclarations.get(funcAst);
-            if (function == null) {
-                throw new IllegalStateException("Function " + funcAst + " was not resolved.");
-            }
-            return function;
-        }
-
-        @NotNull
-        public Expr.Function lookupFunction(Symbol.Function funcAst) {
-            Expr.Function function = functionDeclarationsRev.get(funcAst);
-            if (function == null) {
-                throw new IllegalStateException("Function " + funcAst + " was not resolved.");
             }
             return function;
         }
