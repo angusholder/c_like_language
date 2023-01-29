@@ -146,20 +146,12 @@ public class SymbolTable {
 
     @NotNull
     public Symbol.Value lookupValue(String name) {
-        Symbol symbol = lookupSymbol(name);
-        if (symbol instanceof Symbol.Value value) {
-            return value;
-        }
-        throw new IllegalArgumentException("Not a returnValue: " + name);
+        return lookupSymbol(name).expectValue();
     }
 
     @NotNull
     public Symbol.Function lookupFunction(String name) {
-        Symbol symbol = lookupSymbol(name);
-        if (symbol instanceof Symbol.Function function) {
-            return function;
-        }
-        throw new IllegalArgumentException("Not a function: " + name);
+        return lookupSymbol(name).expectFunction();
     }
 
     @Nullable

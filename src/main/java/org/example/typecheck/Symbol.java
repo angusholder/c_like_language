@@ -1,5 +1,7 @@
 package org.example.typecheck;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.List;
 
 public sealed interface Symbol {
@@ -45,4 +47,20 @@ public sealed interface Symbol {
     }
 
     String name();
+
+    @NotNull
+    default Symbol.Value expectValue() {
+        if (this instanceof Symbol.Value value) {
+            return value;
+        }
+        throw new IllegalArgumentException("Not a returnValue: " + this);
+    }
+
+    @NotNull
+    default Symbol.Function expectFunction() {
+        if (this instanceof Symbol.Function function) {
+            return function;
+        }
+        throw new IllegalArgumentException("Not a function: " + this);
+    }
 }
