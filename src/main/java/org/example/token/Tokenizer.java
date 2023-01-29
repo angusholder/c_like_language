@@ -99,7 +99,7 @@ public class Tokenizer {
 
     @NotNull
     private Token tokenizeNext() {
-        skipWhitespace();
+        skipWhitespaceAndComments();
         if (!hasMoreChars()) {
             return Token.EOF;
         }
@@ -120,6 +120,7 @@ public class Tokenizer {
                 return makeToken(TokenType.STAR);
             }
             case '/' -> {
+                // Comments are handled in skipWhitespaceAndComments().
                 return makeToken(TokenType.DIVIDE);
             }
             case ';' -> {
@@ -292,9 +293,19 @@ public class Tokenizer {
         return token;
     }
 
-    private void skipWhitespace() {
-        while (hasMoreChars() && Character.isWhitespace(peekChar())) {
-            nextChar();
+    private void skipWhitespaceAndComments() {
+        while (hasMoreChars()) {
+            if (Character.isWhitespace(peekChar())) {
+                nextChar();
+            } else if (position + 2 <= source.length() && source.charAt(position) == '/' && source.charAt(position + 1) == '/') {
+                position += 2;
+                while (position < source.length() && source.charAt(position) != '\n') {
+                    position += 1;
+                }
+                // Skip to the end of the line.
+            } else {
+                break;
+            }
         }
         token_start = position;
     }

@@ -9,6 +9,7 @@ import org.example.parse.PrintAst;
 import org.example.token.SourceLoc;
 import org.example.token.SourceSpan;
 import org.example.token.Token;
+import org.example.token.TokenType;
 import org.example.token.Tokenizer;
 import org.example.typecheck.SymbolTable;
 import org.example.typecheck.TypeChecker;
@@ -19,6 +20,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -124,6 +126,14 @@ public class CompilerCtx {
                 throw new IllegalStateException("missing end token for " + expr);
             }
         });
+    }
+
+    /** Helper method for testing out the Tokenizer. */
+    public static List<TokenType> tokenize(String source) {
+        var ctx = new CompilerCtx();
+        Tokenizer tokenizer = ctx.createTokenizer(ctx.addInMemoryFile("anon-file", source));
+        ArrayList<Token> tokens = tokenizer.tokenizeAll();
+        return tokens.stream().map(Token::type).toList();
     }
 
     /** Helper method for testing out the Tokenizer. */
