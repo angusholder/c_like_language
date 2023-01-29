@@ -26,11 +26,21 @@ public class TreeInterpreter {
 
     private static class StackFrame {
         final SymbolTable.FunctionScope function;
-        final Object[] locals;
+        private final Object[] locals;
 
         StackFrame(SymbolTable.FunctionScope function) {
             this.function = function;
             this.locals = new Object[function.locals.size()];
+        }
+
+        Object getLocal(Symbol.Var var) {
+            assert var.owner().equals(function.symbol);
+            return locals[var.localIndex()];
+        }
+
+        void setLocal(Symbol.Var var, Object value) {
+            assert var.owner().equals(function.symbol);
+            locals[var.localIndex()] = value;
         }
     }
 
@@ -64,7 +74,7 @@ public class TreeInterpreter {
                         throw new UnsupportedOperationException("Global variables are not supported yet: " + global);
                     }
                     case Symbol.Var local -> {
-                        currentFrame.locals[local.localIndex()] = rhs;
+                        currentFrame.setLocal(local, rhs);
                         yield voidValue();
                     }
                 };
@@ -129,7 +139,7 @@ public class TreeInterpreter {
                     case Symbol.Global global -> {
                         throw new UnsupportedOperationException("Global variables are not supported yet: " + global);
                     }
-                    case Symbol.Var local -> currentFrame.locals[local.localIndex()];
+                    case Symbol.Var local -> currentFrame.getLocal(local);
                 };
             }
             case Expr.If anIf -> {
@@ -183,7 +193,7 @@ public class TreeInterpreter {
                         throw new UnsupportedOperationException("Global variables are not supported yet: " + global);
                     }
                     case Symbol.Var local -> {
-                        currentFrame.locals[local.localIndex()] = rhs;
+                        currentFrame.setLocal(local, rhs);
                         yield voidValue();
                     }
                 };
@@ -198,7 +208,7 @@ public class TreeInterpreter {
         for (int i = 0; i < functionScope.params.length; i++) {
             Symbol.Param param = functionScope.params[i];
             Expr arg = arguments.get(i);
-            newFrame.locals[param.localIndex()] = eval(arg);
+            newFrame.setLocal(param, eval(arg));
         }
 
         currentFrame = newFrame;
