@@ -70,6 +70,10 @@ public class SymbolTable {
             this.expr = expr;
             this.params = new Symbol.Param[symbol.params().size()];
         }
+
+        public FunctionDefinition toDefinition() {
+            return new FunctionDefinition(symbol, expr, locals.size(), params);
+        }
     }
 
     public record FileScope(
@@ -238,14 +242,19 @@ public class SymbolTable {
             IdentityHashMap<Expr, TypeInfo> resolvedExprTypes,
             IdentityHashMap<Expr.Identifier, Symbol.Value> resolvedVarSymbols,
             IdentityHashMap<Expr.Call, Symbol.Function> resolvedCallSites,
-            IdentityHashMap<Symbol.Function, FunctionScope> functionScopes
+            IdentityHashMap<Symbol.Function, FunctionDefinition> functionDefinitions
     ) {
         public static Symbols fromTable(SymbolTable table) {
+            IdentityHashMap<Symbol.Function, FunctionDefinition> functionDefs = new IdentityHashMap<>();
+            table.functionScopes.forEach((symbol, scope) -> {
+                functionDefs.put(symbol, scope.toDefinition());
+            });
+
             return new Symbols(
                     new IdentityHashMap<>(table.resolvedExprTypes),
                     new IdentityHashMap<>(table.resolvedVarSymbols),
                     new IdentityHashMap<>(table.resolvedCallSites),
-                    new IdentityHashMap<>(table.functionScopes)
+                    functionDefs
             );
         }
 
@@ -277,12 +286,12 @@ public class SymbolTable {
         }
 
         @NotNull
-        public FunctionScope lookupFunctionScope(Symbol.Function function) {
-            FunctionScope scope = functionScopes.get(function);
-            if (scope == null) {
-                throw new IllegalStateException("Function scope for " + function + " was not resolved.");
+        public FunctionDefinition lookupFunctionScope(Symbol.Function function) {
+            FunctionDefinition def = functionDefinitions.get(function);
+            if (def == null) {
+                throw new IllegalStateException("Function definition for " + function + " was not resolved.");
             }
-            return scope;
+            return def;
         }
     }
 }

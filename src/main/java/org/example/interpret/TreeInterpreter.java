@@ -2,8 +2,8 @@ package org.example.interpret;
 
 import org.example.CompilerCtx;
 import org.example.parse.Expr;
+import org.example.typecheck.FunctionDefinition;
 import org.example.typecheck.Symbol;
-import org.example.typecheck.SymbolTable;
 import org.example.typecheck.SymbolTable.FileScope;
 import org.example.typecheck.TypeInfo;
 import org.jetbrains.annotations.Nullable;
@@ -25,26 +25,26 @@ public class TreeInterpreter {
     }
 
     private static class StackFrame {
-        final SymbolTable.FunctionScope function;
+        final FunctionDefinition function;
         private final Object[] locals;
 
-        StackFrame(SymbolTable.FunctionScope function) {
+        StackFrame(FunctionDefinition function) {
             this.function = function;
-            this.locals = new Object[function.locals.size()];
+            this.locals = new Object[function.numLocals()];
         }
 
         Object getLocal(Symbol.Var var) {
-            assert var.owner().equals(function.symbol);
+            assert var.owner().equals(function.symbol());
             return locals[var.localIndex()];
         }
 
         void setLocal(Symbol.Var var, Object value) {
-            assert var.owner().equals(function.symbol);
+            assert var.owner().equals(function.symbol());
             locals[var.localIndex()] = value;
         }
     }
 
-    private static SymbolTable.FunctionScope lookupEntrypoint(FileScope fileScope) {
+    private static FunctionDefinition lookupEntrypoint(FileScope fileScope) {
         Symbol.Function entrypoint = fileScope.valuesNamespace().get("main").expectFunction();
         if (!entrypoint.params().isEmpty()) {
             throw new IllegalStateException("Entrypoint must have no parameters");
@@ -56,7 +56,7 @@ public class TreeInterpreter {
     }
 
     public Object interpretFromEntrypoint() {
-        return eval(currentFrame.function.expr.body());
+        return eval(currentFrame.function.expr().body());
     }
 
     @Nullable
@@ -161,7 +161,7 @@ public class TreeInterpreter {
                 yield Integer.parseInt(number.text());
             }
             case Expr.Return aReturn -> {
-                Symbol.Function function = currentFrame.function.symbol;
+                Symbol.Function function = currentFrame.function.symbol();
                 if (aReturn.returnValue() != null) {
                     throw new ReturnException(eval(aReturn.returnValue()), function);
                 } else {
@@ -202,11 +202,11 @@ public class TreeInterpreter {
     }
 
     private Object doFunctionCall(Symbol.Function callSite, List<Expr> arguments) {
-        SymbolTable.FunctionScope functionScope = fileScope.symbols().lookupFunctionScope(callSite);
+        FunctionDefinition functionDefinition = fileScope.symbols().lookupFunctionScope(callSite);
         callStack.push(currentFrame);
-        StackFrame newFrame = new StackFrame(functionScope);
-        for (int i = 0; i < functionScope.params.length; i++) {
-            Symbol.Param param = functionScope.params[i];
+        StackFrame newFrame = new StackFrame(functionDefinition);
+        for (int i = 0; i < functionDefinition.params().length; i++) {
+            Symbol.Param param = functionDefinition.params()[i];
             Expr arg = arguments.get(i);
             newFrame.setLocal(param, eval(arg));
         }
