@@ -15,9 +15,11 @@ public class SymbolTable {
 
     private final List<Scope> scopes = new ArrayList<>();
     private final IdentityHashMap<Expr, TypeInfo> resolvedExprTypes = new IdentityHashMap<>();
+    private final IdentityHashMap<Expr.Identifier, Symbol.Value> resolvedVarSymbols = new IdentityHashMap<>();
     private final IdentityHashMap<Expr.Call, Symbol.Function> resolvedCallSites = new IdentityHashMap<>();
     private final IdentityHashMap<TypeExpr, TypeInfo> resolvedTypeRefs = new IdentityHashMap<>();
     private final IdentityHashMap<Expr.Function, Symbol.Function> functionDeclarations = new IdentityHashMap<>();
+    private final IdentityHashMap<Symbol.Function, Expr.Function> functionDeclarationsRev = new IdentityHashMap<>();
     private final IdentityHashMap<Symbol.Function, FunctionScope> functionScopes = new IdentityHashMap<>();
 
     public SymbolTable() {
@@ -25,7 +27,7 @@ public class SymbolTable {
 
     public static class Scope {
         final Map<String, TypeInfo> typesNamespace = new LinkedHashMap<>();
-        // TODO: Separate symbol list for functions?
+        // Variables and functions exist in the same namespace
         final Map<String, Symbol> valuesNamespace = new LinkedHashMap<>();
         @Nullable
         final SymbolTable.FunctionScope functionScope;
@@ -49,15 +51,31 @@ public class SymbolTable {
             globalScope.typesNamespace.put("void", TypeInfo.VOID);
             return globalScope;
         }
+
+        public FunctionScope expectFunction() {
+            if (functionScope != null) {
+                return functionScope;
+            }
+            throw new IllegalStateException("This scope does not belong to a function: " + this);
+        }
     }
 
     public static class FunctionScope {
         public final Symbol.Function symbol;
+        public final Expr.Function expr;
         public final List<Symbol.Var> locals = new ArrayList<>();
 
-        public FunctionScope(Symbol.Function symbol) {
+        public FunctionScope(Symbol.Function symbol, Expr.Function expr) {
             this.symbol = symbol;
+            this.expr = expr;
         }
+    }
+
+    public record FileScope(
+        Map<String, TypeInfo> types,
+        Map<String, Symbol> valuesNamespace,
+        Symbols symbols
+    ) {
     }
 
     public void pushGlobalScope() {
@@ -65,8 +83,8 @@ public class SymbolTable {
         scopes.add(scope);
     }
 
-    public void pushFunctionScope(Symbol.Function symbol) {
-        FunctionScope functionScope = new FunctionScope(symbol);
+    public void pushFunctionScope(Symbol.Function symbol, Expr.Function expr) {
+        FunctionScope functionScope = new FunctionScope(symbol, expr);
         functionScopes.put(symbol, functionScope);
         Scope scope = new Scope(functionScope);
         scopes.add(scope);
@@ -74,12 +92,12 @@ public class SymbolTable {
         List<Symbol.FunctionParam> params = symbol.params();
         for (int i = 0; i < params.size(); i++) {
             Symbol.FunctionParam param = params.get(i);
-            addSymbol(new Symbol.Param(param.name(), param.type(), symbol, i));
+            addSymbol(new Symbol.Param(param.name().text(), param.type(), symbol, i, functionScope.locals.size()), param.name());
         }
     }
 
     public void pushBlockScope() {
-        Scope scope = new Scope(expectCurrentFunction());
+        Scope scope = new Scope(getCurrentScope().expectFunction());
         scopes.add(scope);
     }
 
@@ -90,19 +108,21 @@ public class SymbolTable {
         scopes.remove(scopes.size() - 1);
     }
 
+    public FileScope popGlobalScope() {
+        if (scopes.size() != 1) {
+            throw new IllegalStateException("There should be only one scope left, had " + scopes.size());
+        }
+        Scope scope = scopes.remove(0);
+        if (scope.functionScope != null) {
+            throw new IllegalStateException("Global scope should not have a function scope");
+        }
+        return new FileScope(scope.typesNamespace, scope.valuesNamespace, Symbols.fromTable(this));
+    }
+
     @Nullable
     public Symbol.Function getCurrentFunctionSymbol() {
         var current = getCurrentScope().functionScope;
         return current == null ? null : current.symbol;
-    }
-
-    @NotNull
-    public SymbolTable.FunctionScope expectCurrentFunction() {
-        Scope scope = getCurrentScope();
-        if (scope.functionScope != null) {
-            return scope.functionScope;
-        }
-        throw new IllegalStateException("This scope does not belong to a function: " + scope);
     }
 
     @NotNull
@@ -145,13 +165,15 @@ public class SymbolTable {
     }
 
     @NotNull
-    public Symbol.Value lookupValue(String name) {
-        return lookupSymbol(name).expectValue();
+    public Symbol.Value resolveValue(Expr.Identifier name) {
+        Symbol.Value value = lookupSymbol(name.text()).expectValue();
+        resolvedVarSymbols.put(name, value);
+        return value;
     }
 
     @NotNull
-    public Symbol.Function lookupFunction(String name) {
-        return lookupSymbol(name).expectFunction();
+    public Symbol.Function lookupFunction(Expr.Identifier name) {
+        return lookupSymbol(name.text()).expectFunction();
     }
 
     @Nullable
@@ -168,27 +190,31 @@ public class SymbolTable {
         resolvedCallSites.put(call, function);
     }
 
-    private void addSymbol(Symbol symbol) {
+    private void addSymbol(Symbol symbol, Expr.Identifier identifier) {
         Scope scope = getCurrentScope();
         scope.valuesNamespace.put(symbol.name(), symbol);
         if (symbol instanceof Symbol.Var var) {
-            expectCurrentFunction().locals.add(var);
+            FunctionScope functionScope = scope.expectFunction();
+            assert var.localIndex() == functionScope.locals.size();
+            functionScope.locals.add(var);
+            resolvedVarSymbols.put(identifier, var);
         }
     }
 
-    public void addVariableSymbol(String name, TypeInfo type) {
+    public void addVariableSymbol(Expr.Identifier name, TypeInfo type) {
         Scope scope = getCurrentScope();
         if (scope.functionScope == null) {
-            addSymbol(new Symbol.Global(name, type));
+            addSymbol(new Symbol.Global(name.text(), type), name);
         } else {
-            addSymbol(new Symbol.Local(name, type, scope.functionScope.symbol));
+            addSymbol(new Symbol.Local(name.text(), type, scope.functionScope.symbol, scope.functionScope.locals.size()), name);
         }
     }
 
     public void addFunctionSymbol(Expr.Function funcAst, List<Symbol.FunctionParam> params, TypeInfo returnType) {
-        var symbol = new Symbol.Function(funcAst.name(), params, returnType);
-        addSymbol(symbol);
+        var symbol = new Symbol.Function(funcAst.name().text(), params, returnType);
+        addSymbol(symbol, funcAst.name());
         functionDeclarations.put(funcAst, symbol);
+        functionDeclarationsRev.put(symbol, funcAst);
     }
 
     public Symbol.Function lookupFunction(Expr.Function funcAst) {
@@ -208,10 +234,32 @@ public class SymbolTable {
 
     public record Symbols(
             IdentityHashMap<Expr, TypeInfo> resolvedExprTypes,
+            IdentityHashMap<Expr.Identifier, Symbol.Value> resolvedVarSymbols,
             IdentityHashMap<Expr.Call, Symbol.Function> resolvedCallSites,
-            IdentityHashMap<TypeExpr, TypeInfo> resolvedTypeRefs,
-            IdentityHashMap<Expr.Function, Symbol.Function> resolvedFunctions
+            IdentityHashMap<Expr.Function, Symbol.Function> functionDeclarations,
+            IdentityHashMap<Symbol.Function, Expr.Function> functionDeclarationsRev,
+            IdentityHashMap<Symbol.Function, FunctionScope> functionScopes
     ) {
+        public static Symbols fromTable(SymbolTable table) {
+            return new Symbols(
+                    new IdentityHashMap<>(table.resolvedExprTypes),
+                    new IdentityHashMap<>(table.resolvedVarSymbols),
+                    new IdentityHashMap<>(table.resolvedCallSites),
+                    new IdentityHashMap<>(table.functionDeclarations),
+                    new IdentityHashMap<>(table.functionDeclarationsRev),
+                    new IdentityHashMap<>(table.functionScopes)
+            );
+        }
+
+        @NotNull
+        public Symbol.Value lookupValue(Expr.Identifier ident) {
+            Symbol.Value var = resolvedVarSymbols.get(ident);
+            if (var == null) {
+                throw new IllegalStateException("Var " + ident + " was not resolved.");
+            }
+            return var;
+        }
+
         @NotNull
         public Symbol.Function lookupCallSite(Expr.Call call) {
             Symbol.Function function = resolvedCallSites.get(call);
@@ -222,17 +270,17 @@ public class SymbolTable {
         }
 
         @NotNull
-        public TypeInfo lookupTypeRef(TypeExpr type) {
-            TypeInfo typeInfo = resolvedTypeRefs.get(type);
-            if (typeInfo == null) {
-                throw new IllegalStateException("Type ref " + type + " was not resolved.");
+        public Symbol.Function lookupFunction(Expr.Function funcAst) {
+            Symbol.Function function = functionDeclarations.get(funcAst);
+            if (function == null) {
+                throw new IllegalStateException("Function " + funcAst + " was not resolved.");
             }
-            return typeInfo;
+            return function;
         }
 
         @NotNull
-        public Symbol.Function lookupFunction(Expr.Function funcAst) {
-            Symbol.Function function = resolvedFunctions.get(funcAst);
+        public Expr.Function lookupFunction(Symbol.Function funcAst) {
+            Expr.Function function = functionDeclarationsRev.get(funcAst);
             if (function == null) {
                 throw new IllegalStateException("Function " + funcAst + " was not resolved.");
             }
@@ -246,6 +294,15 @@ public class SymbolTable {
                 throw new IllegalStateException("Expr " + expr + " was not resolved.");
             }
             return typeInfo;
+        }
+
+        @NotNull
+        public FunctionScope lookupFunctionScope(Symbol.Function function) {
+            FunctionScope scope = functionScopes.get(function);
+            if (scope == null) {
+                throw new IllegalStateException("Function scope for " + function + " was not resolved.");
+            }
+            return scope;
         }
     }
 }

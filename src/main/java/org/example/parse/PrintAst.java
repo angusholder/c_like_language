@@ -24,6 +24,10 @@ public class PrintAst {
         stream.println(s);
     }
 
+    private void println(Expr.Identifier identifier) {
+        println(identifier.text());
+    }
+
     public void visit(ParsedFile file) {
         println(file.file().name());
         indented(() -> {

@@ -17,13 +17,15 @@ public class TypeChecker {
         this.table = ctx.symbols;
     }
 
-    public void checkFile(ParsedFile file) {
+    public SymbolTable.FileScope checkFile(ParsedFile file) {
         table.pushGlobalScope();
+        SymbolTable.FileScope scope;
         try {
             resolveExprList(file.items());
         } finally {
-            table.popScope();
+            scope = table.popGlobalScope();
         }
+        return scope;
     }
 
     public <T extends Expr> void resolveExprList(List<T> exprList) {
@@ -56,7 +58,7 @@ public class TypeChecker {
     private TypeInfo checkExpr(Expr expr) {
         return switch (expr) {
             case Expr.Assign assign -> {
-                Symbol.Value lhsSymbol = table.lookupValue(assign.lhs());
+                Symbol.Value lhsSymbol = table.resolveValue(assign.lhs());
                 TypeInfo rhsType = resolveExpr(assign.rhs());
                 checkSame(lhsSymbol.valueType(), rhsType);
                 yield TypeInfo.VOID;
@@ -64,7 +66,7 @@ public class TypeChecker {
             case Expr.Binary binary -> checkBinaryExpr(binary);
             case Expr.Block block -> checkBlock(block);
             case Expr.Call call -> checkCall(call);
-            case Expr.Identifier identifier -> table.lookupValue(identifier.text()).valueType();
+            case Expr.Identifier identifier -> table.resolveValue(identifier).valueType();
             case Expr.If anIf -> checkIfStmt(anIf);
             case Expr.Number number -> {
                 // TODO: Support more than one number type
@@ -225,7 +227,7 @@ public class TypeChecker {
     @NotNull
     private TypeInfo checkFunctionBody(Expr.Function function) {
         Symbol.Function funcSymbol = table.lookupFunction(function);
-        table.pushFunctionScope(funcSymbol);
+        table.pushFunctionScope(funcSymbol, function);
         try {
             for (Expr item : function.body().items()) {
                 resolveExpr(item);

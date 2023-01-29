@@ -201,17 +201,17 @@ public class Parser {
 
     private Expr.Function parseFunction() {
         var funcToken = tokenizer.expect(TokenType.K_FUNC);
-        Token name = tokenizer.expect(TokenType.IDENTIFIER);
+        Expr.Identifier name = createIdentifierExpr(tokenizer.expect(TokenType.IDENTIFIER));
         tokenizer.expect(TokenType.LPAREN);
         List<Expr.FuncParam> params = new ArrayList<>();
         while (true) {
             if (tokenizer.peek() == TokenType.RPAREN) {
                 break;
             }
-            Token paramName = tokenizer.expect(TokenType.IDENTIFIER);
+            Expr.Identifier paramName = createIdentifierExpr(tokenizer.expect(TokenType.IDENTIFIER));
             tokenizer.expect(TokenType.COLON);
             TypeExpr paramType = parseType();
-            params.add(new Expr.FuncParam(tokenizer.getSourceOf(paramName), paramType));
+            params.add(new Expr.FuncParam(paramName, paramType));
 
             if (tokenizer.peek() == TokenType.RPAREN) {
                 break;
@@ -224,17 +224,17 @@ public class Parser {
             returnType = parseType();
         }
         Expr.Block body = parseBlock();
-        return hook(new Expr.Function(tokenizer.getSourceOf(name), returnType, params, body), funcToken, exprEnds.get(body));
+        return hook(new Expr.Function(name, returnType, params, body), funcToken, exprEnds.get(body));
     }
 
     private Expr.Let parseLet() {
         var letToken = tokenizer.expect(TokenType.K_LET);
-        Token name = tokenizer.expect(TokenType.IDENTIFIER);
+        Expr.Identifier name = createIdentifierExpr(tokenizer.expect(TokenType.IDENTIFIER));
         tokenizer.expect(TokenType.COLON);
         TypeExpr type = parseType();
         tokenizer.expect(TokenType.ASSIGN);
         Expr value = parseExpr();
-        return hook(new Expr.Let(tokenizer.getSourceOf(name), type, value), letToken, exprEnds.get(value));
+        return hook(new Expr.Let(name, type, value), letToken, exprEnds.get(value));
     }
 
     private TypeExpr parseType() {
@@ -274,13 +274,14 @@ public class Parser {
             }
             case IDENTIFIER -> {
                 Token ident = tokenizer.next();
+                Expr.Identifier identifier = createIdentifierExpr(ident);
                 if (tokenizer.peek() == TokenType.LPAREN) {
-                    return parseCall(ident);
+                    return parseCall(identifier);
                 }
                 if (tokenizer.peek() == TokenType.ASSIGN) {
-                    return parseAssign(ident);
+                    return parseAssign(identifier);
                 }
-                return hook(new Expr.Identifier(tokenizer.getSourceOf(ident)), ident, ident);
+                return identifier;
             }
             case K_TRUE -> {
                 var token = tokenizer.next();
@@ -304,13 +305,18 @@ public class Parser {
         }
     }
 
-    private Expr parseAssign(Token lhs) {
-        tokenizer.expect(TokenType.ASSIGN);
-        Expr value = parseExpr();
-        return hook(new Expr.Assign(tokenizer.getSourceOf(lhs), value), lhs, exprEnds.get(value));
+    @NotNull
+    private Expr.Identifier createIdentifierExpr(Token ident) {
+        return hook(new Expr.Identifier(tokenizer.getSourceOf(ident)), ident, ident);
     }
 
-    private Expr parseCall(Token name) {
+    private Expr parseAssign(Expr.Identifier lhs) {
+        tokenizer.expect(TokenType.ASSIGN);
+        Expr value = parseExpr();
+        return hook(new Expr.Assign(lhs, value), exprStarts.get(lhs), exprEnds.get(value));
+    }
+
+    private Expr parseCall(Expr.Identifier name) {
         tokenizer.expect(TokenType.LPAREN);
         List<Expr> args = new ArrayList<>();
         while (true) {
@@ -327,7 +333,7 @@ public class Parser {
             }
         }
         var closeParenToken = tokenizer.expect(TokenType.RPAREN);
-        return hook(new Expr.Call(tokenizer.getSourceOf(name), args), name, closeParenToken);
+        return hook(new Expr.Call(name, args), exprStarts.get(name), closeParenToken);
     }
 
     /*

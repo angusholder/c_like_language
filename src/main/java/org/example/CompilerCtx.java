@@ -1,6 +1,7 @@
 package org.example;
 
 import org.example.codegen.Codegen;
+import org.example.interpret.TreeInterpreter;
 import org.example.parse.Expr;
 import org.example.parse.ParsedFile;
 import org.example.parse.Parser;
@@ -166,5 +167,13 @@ public class CompilerCtx {
         new TypeChecker(ctx).resolveExpr(expr);
         Codegen codegen = new Codegen(ctx);
         codegen.emitCode(expr);
+    }
+
+    public static void interpret(String source) {
+        var ctx = new CompilerCtx();
+        Parser parser = ctx.createParser(ctx.addInMemoryFile("anon-file", source));
+        ParsedFile file = parser.parseFile();
+        SymbolTable.FileScope fileScope = new TypeChecker(ctx).checkFile(file);
+        new TreeInterpreter(ctx, fileScope).interpretFromEntrypoint();
     }
 }

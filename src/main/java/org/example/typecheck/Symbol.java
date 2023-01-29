@@ -1,5 +1,6 @@
 package org.example.typecheck;
 
+import org.example.parse.Expr;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -14,7 +15,8 @@ public sealed interface Symbol {
     record Local(
             String name,
             TypeInfo valueType,
-            Function owner
+            Function owner,
+            int localIndex
     ) implements Symbol, Value, Var {
     }
 
@@ -22,7 +24,8 @@ public sealed interface Symbol {
             String name,
             TypeInfo valueType,
             Function owner,
-            int paramIndex
+            int paramIndex,
+            int localIndex
     ) implements Symbol, Value, Var {
     }
 
@@ -34,12 +37,13 @@ public sealed interface Symbol {
     }
 
     record FunctionParam(
-            String name,
+            Expr.Identifier name,
             TypeInfo type
     ) {}
 
     sealed interface Var extends Value {
         Function owner();
+        int localIndex();
     }
 
     sealed interface Value extends Symbol {

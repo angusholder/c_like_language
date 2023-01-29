@@ -59,7 +59,7 @@ public sealed interface Expr {
     }
 
     record Call(
-            String callee,
+            Identifier callee,
             List<Expr> arguments
     ) implements Expr {
     }
@@ -90,7 +90,7 @@ public sealed interface Expr {
     }
 
     record Function(
-            String name,
+            Identifier name,
             @Nullable
             TypeExpr returnType,
             List<FuncParam> parameters,
@@ -99,12 +99,12 @@ public sealed interface Expr {
     }
 
     record FuncParam(
-            String name,
+            Identifier name,
             TypeExpr type
     ) {}
 
     record Let(
-            String name,
+            Identifier name,
             TypeExpr type,
             Expr value
     ) implements Item {
@@ -115,7 +115,7 @@ public sealed interface Expr {
     }
 
     record Assign(
-            String lhs,
+            Identifier lhs,
             Expr rhs
     ) implements Expr {
     }
