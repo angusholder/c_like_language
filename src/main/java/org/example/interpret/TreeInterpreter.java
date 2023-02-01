@@ -69,15 +69,15 @@ public class TreeInterpreter {
             case Expr.Assign assign -> {
                 Object rhs = eval(assign.rhs());
                 Symbol.Value lhsSymbol = fileScope.symbols().lookupValue(assign.lhs());
-                yield switch (lhsSymbol) {
+                switch (lhsSymbol) {
                     case Symbol.Global global -> {
                         throw new UnsupportedOperationException("Global variables are not supported yet: " + global);
                     }
                     case Symbol.Var local -> {
                         currentFrame.setLocal(local, rhs);
-                        yield voidValue();
                     }
-                };
+                }
+                yield voidValue();
             }
             case Expr.Binary binary -> {
                 Object left = eval(binary.left());
@@ -181,22 +181,22 @@ public class TreeInterpreter {
                 }
                 yield voidValue();
             }
-            case Expr.Function function -> {
+            case Expr.Function ignored -> {
                 // nothing needs doing with function expressions at runtime, we don't support closures or anything currently.
                 yield voidValue();
             }
             case Expr.Let let -> {
                 Object rhs = eval(let.value());
                 Symbol.Value lhsSymbol = fileScope.symbols().lookupValue(let.name());
-                yield switch (lhsSymbol) {
+                switch (lhsSymbol) {
                     case Symbol.Global global -> {
                         throw new UnsupportedOperationException("Global variables are not supported yet: " + global);
                     }
                     case Symbol.Var local -> {
                         currentFrame.setLocal(local, rhs);
-                        yield voidValue();
                     }
-                };
+                }
+                yield voidValue();
             }
         };
     }
