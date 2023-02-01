@@ -1,10 +1,16 @@
+func println(a: i32) {}
+
 func main() {
-    int last = 1;
-    int current = 1;
-    while (true) {
-        int next = last + current;
-        last = current;
-        current = next;
-        println(current);
-    }
+    fibonacci(10000);
+}
+
+func fibonacci(limit: i32) {
+    let a: i32 = 0;
+    let b: i32 = 1;
+    while (a < limit) {
+        println(a);
+        let temp: i32 = a + b;
+        a = b;
+        b = temp;
+    };
 }

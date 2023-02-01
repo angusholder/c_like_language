@@ -3,28 +3,21 @@ package org.example.token;
 import org.example.CompilerCtx;
 import org.junit.Test;
 
+import static org.example.CompilerCtx.readResource;
+
 public class TreeInterpreterTest {
     @Test
-    public void test() {
-        CompilerCtx.interpret(
-        """
-            func println(a: i32) {}
-            func printlnBool(a: bool) {}
+    public void fibonacci() {
+        CompilerCtx.interpret(readResource("/lang_samples/fibonacci.txt"));
+    }
 
-            func main() {
-                fibonacci(10000);
-            }
+    @Test
+    public void factorial() {
+        CompilerCtx.interpret(readResource("/lang_samples/factorial.txt"));
+    }
 
-            func fibonacci(limit: i32) {
-                let a: i32 = 0;
-                let b: i32 = 1;
-                while (a < limit) {
-                    println(a);
-                    let temp: i32 = a + b;
-                    a = b;
-                    b = temp;
-                };
-            }
-        """);
+    @Test
+    public void helloWorld() {
+        CompilerCtx.interpret(readResource("/lang_samples/hello_world.txt"));
     }
 }

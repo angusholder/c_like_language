@@ -1,3 +1,5 @@
+func println(n: i32) {}
+
 func main() {
     println(1);
     println(2);

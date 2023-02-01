@@ -1,0 +1,36 @@
+func println(n: i32) {}
+
+func factorialRecursive(n: i32) -> i32 {
+    if (n == 0) {
+        return 1;
+    };
+    return n * factorialRecursive(n - 1);
+}
+
+func factorialIterative(n: i32) -> i32 {
+    let result: i32 = 1;
+    let i: i32 = 1;
+    while (i <= n) {
+        result = result * i;
+        i = i + 1;
+    };
+    return result;
+}
+
+func main() {
+    println(1);
+    println(factorialRecursive(1));
+    println(factorialIterative(1));
+
+    println(5);
+    println(factorialRecursive(5));
+    println(factorialIterative(5));
+
+    println(10);
+    println(factorialRecursive(10));
+    println(factorialIterative(10));
+
+    println(12);
+    println(factorialRecursive(12));
+    println(factorialIterative(12));
+}

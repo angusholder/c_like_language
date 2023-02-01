@@ -16,6 +16,8 @@ import org.example.typecheck.TypeChecker;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -185,5 +187,19 @@ public class CompilerCtx {
         ParsedFile file = parser.parseFile();
         SymbolTable.FileScope fileScope = new TypeChecker(ctx).checkFile(file);
         new TreeInterpreter(ctx, fileScope).interpretFromEntrypoint();
+    }
+
+    @NotNull
+    public static String readResource(String path) {
+        String source;
+        try (InputStream is = CompilerCtx.class.getResourceAsStream(path)) {
+            if (is == null) {
+                throw new FileNotFoundException("resource not found: " + path);
+            }
+            source = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return source;
     }
 }
