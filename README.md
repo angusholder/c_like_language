@@ -38,3 +38,5 @@ func ifExpression() -> i32 {
 - [X64 instruction reference](https://www.felixcloutier.com/x86/)
 - [Pratt parsers by Bob Nystrom](http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/)
 - [Pratt parsers by matklad](https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html)
+- [disasm.pro assembler/disassembler](https://disasm.pro/)
+- [defuse.ca assembler/disassembler](https://defuse.ca/online-x86-assembler.htm#disassembly2)
