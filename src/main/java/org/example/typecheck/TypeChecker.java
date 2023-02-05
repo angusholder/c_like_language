@@ -176,8 +176,8 @@ public class TypeChecker {
 
     @NotNull
     private TypeInfo checkBinaryExpr(Expr.Binary binary) {
-        var left = resolveExpr(binary.left());
-        var right = resolveExpr(binary.right());
+        TypeInfo left = resolveExpr(binary.left());
+        TypeInfo right = resolveExpr(binary.right());
 
         return switch (binary.op()) {
             case ADD, SUB, MUL, DIV -> {
@@ -185,8 +185,8 @@ public class TypeChecker {
                 yield left;
             }
             case AND, OR -> {
-                checkSame(left, TypeInfo.BOOL);
-                checkSame(right, TypeInfo.BOOL);
+                checkIsBool(left);
+                checkIsBool(right);
                 yield TypeInfo.BOOL;
             }
             case EQUALS, NOT_EQUALS, LT_EQ, LT, GT_EQ, GT -> {

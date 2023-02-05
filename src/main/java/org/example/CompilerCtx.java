@@ -2,10 +2,7 @@ package org.example;
 
 import org.example.codegen.Codegen;
 import org.example.interpret.TreeInterpreter;
-import org.example.parse.Expr;
-import org.example.parse.ParsedFile;
-import org.example.parse.Parser;
-import org.example.parse.PrintAst;
+import org.example.parse.*;
 import org.example.token.SourceLoc;
 import org.example.token.SourceSpan;
 import org.example.token.Token;
@@ -44,6 +41,13 @@ public class CompilerCtx {
 
     public final IdentityHashMap<Expr, Token> exprStarts = new IdentityHashMap<>();
     public final IdentityHashMap<Expr, Token> exprEnds = new IdentityHashMap<>();
+
+    public record Error(
+            SourceSpan span,
+            String message
+    ) {}
+
+    private final List<Error> errors = new ArrayList<>();
 
     public CompilerCtx() {
 
@@ -113,6 +117,24 @@ public class CompilerCtx {
         return files.get(fileUid);
     }
 
+    public ParseError reportParseError(SourceSpan span, String message) {
+        Error err = new Error(span, message);
+        errors.add(err);
+        CompileErrors.printError(err);
+        return new ParseError();
+    }
+
+    public static class ParseError extends RuntimeException {
+    }
+
+    public CompileErrors getCompileErrors() {
+        return new CompileErrors(errors);
+    }
+
+    public boolean didError() {
+        return !errors.isEmpty();
+    }
+
     public void checkSourceRangeInfoIsPresent(ParsedFile file) {
         for (Expr.Item item : file.items()) {
             checkSourceRangeInfoIsPresent(item);
@@ -152,6 +174,10 @@ public class CompilerCtx {
     public static void parseAndPrintTree(String source) {
         var ctx = new CompilerCtx();
         Parser parser = ctx.createParser(ctx.addInMemoryFile("anon-file", source));
+        if (ctx.didError()) {
+            ctx.getCompileErrors().print();
+            return;
+        }
         ParsedFile file = parser.parseFile();
         new PrintAst().visit(file);
     }
@@ -168,6 +194,10 @@ public class CompilerCtx {
         var ctx = new CompilerCtx();
         Parser parser = ctx.createParser(ctx.addInMemoryFile("anon-file", source));
         ParsedFile file = parser.parseFile();
+        if (ctx.didError()) {
+            ctx.getCompileErrors().print();
+            return;
+        }
         new TypeChecker(ctx).checkFile(file);
     }
 
@@ -176,7 +206,15 @@ public class CompilerCtx {
         var ctx = new CompilerCtx();
         Parser parser = ctx.createParser(ctx.addInMemoryFile("anon-file", source));
         Expr expr = parser.parseExpr();
+        if (ctx.didError()) {
+            ctx.getCompileErrors().print();
+            return;
+        }
         new TypeChecker(ctx).resolveExpr(expr);
+        if (ctx.didError()) {
+            ctx.getCompileErrors().print();
+            return;
+        }
         Codegen codegen = new Codegen(ctx);
         codegen.emitCode(expr);
     }
@@ -185,7 +223,15 @@ public class CompilerCtx {
         var ctx = new CompilerCtx();
         Parser parser = ctx.createParser(ctx.addInMemoryFile("anon-file", source));
         ParsedFile file = parser.parseFile();
+        if (ctx.didError()) {
+            ctx.getCompileErrors().print();
+            return;
+        }
         SymbolTable.FileScope fileScope = new TypeChecker(ctx).checkFile(file);
+        if (ctx.didError()) {
+            ctx.getCompileErrors().print();
+            return;
+        }
         new TreeInterpreter(ctx, fileScope).interpretFromEntrypoint();
     }
 

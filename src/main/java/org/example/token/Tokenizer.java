@@ -1,6 +1,7 @@
 package org.example.token;
 
 import org.example.CompilerCtx;
+import org.example.CompilerCtx.ParseError;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -50,7 +51,6 @@ public class Tokenizer {
     @NotNull
     public Token next() {
         Token result = peekToken();
-//        new RuntimeException("Consumed " + result.type()).printStackTrace();
         peeked = null;
         return result;
     }
@@ -64,18 +64,18 @@ public class Tokenizer {
     }
 
     @NotNull
-    public WrongTokenTypeException reportWrongTokenType(Token token, TokenType... expectedTypes) {
+    public ParseError reportWrongTokenType(Token token, TokenType... expectedTypes) {
         SourceSpan span = ctx.getSourceSpan(token);
         if (expectedTypes.length == 1) {
-            return new WrongTokenTypeException(token, span.formattedLocation() + " Got " + token.type() + ", expected " + expectedTypes[0].repr);
+            return ctx.reportParseError(span, " Got " + token.type() + ", expected " + expectedTypes[0].repr);
         } else {
             String expected = Arrays.stream(expectedTypes).map(t -> t.repr).collect(Collectors.joining(", "));
-            return new WrongTokenTypeException(token, span.formattedLocation() + " Got " + token.type() + ", expected one of [" + expected + "]");
+            return ctx.reportParseError(span, " Got " + token.type() + ", expected one of [" + expected + "]");
         }
     }
 
     @NotNull
-    public WrongTokenTypeException reportWrongTokenType(TokenType... expectedTypes) {
+    public ParseError reportWrongTokenType(TokenType... expectedTypes) {
         return reportWrongTokenType(peekToken(), expectedTypes);
     }
 
@@ -85,15 +85,6 @@ public class Tokenizer {
             return true;
         } else {
             return false;
-        }
-    }
-
-    public static class WrongTokenTypeException extends RuntimeException {
-        public final Token token;
-
-        public WrongTokenTypeException(Token token, String message) {
-            super(message);
-            this.token = token;
         }
     }
 
@@ -148,14 +139,14 @@ public class Tokenizer {
                 if (matchesChar('&')) {
                     return makeToken(TokenType.AND);
                 } else {
-                    throw reportUnexpected();
+                    throw ctx.reportParseError(getCurrentSourceSpan(), "Unexpected character");
                 }
             }
             case '|' -> {
                 if (matchesChar('|')) {
                     return makeToken(TokenType.OR);
                 } else {
-                    throw reportUnexpected();
+                    throw ctx.reportParseError(getCurrentSourceSpan(), "Unexpected character");
                 }
             }
             case '=' -> {
@@ -194,7 +185,7 @@ public class Tokenizer {
                         if (Character.isJavaIdentifierPart(ch) || ch == '-' || ch == '?') {
                             if (sawQuestion) {
                                 // The identifier should have ended at the '?'.
-                                throw reportUnexpected();
+                                throw ctx.reportParseError(getCurrentSourceSpan(), "Identifiers must end after '?'");
                             }
                             if (ch == '?') {
                                 sawQuestion = true;
@@ -213,14 +204,9 @@ public class Tokenizer {
                     return makeToken(TokenType.NUMBER);
                 }
 
-                throw reportUnexpected();
+                throw ctx.reportParseError(getCurrentSourceSpan(), "Unexpected character");
             }
         }
-    }
-
-    private RuntimeException reportUnexpected() {
-        SourceSpan span = getCurrentSourceSpan();
-        return new RuntimeException("Unexpected text at line " + span.formattedLocation() + ": '" + span.text() + "'");
     }
 
     private SourceLoc getSourceLocation(int offset) {
