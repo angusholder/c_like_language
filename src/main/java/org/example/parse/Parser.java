@@ -3,6 +3,7 @@ package org.example.parse;
 import org.example.CompilerCtx;
 import org.example.parse.Expr.BinaryOp;
 import org.example.parse.Expr.UnaryOp;
+import org.example.token.SourceSpan;
 import org.example.token.Token;
 import org.example.token.TokenType;
 import org.example.token.Tokenizer;
@@ -10,18 +11,22 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Parser {
     private final Tokenizer tokenizer;
     private final IdentityHashMap<Expr, Token> exprStarts;
     private final IdentityHashMap<Expr, Token> exprEnds;
+    private final CompilerCtx ctx;
 
     public Parser(Tokenizer tokenizer, CompilerCtx ctx) {
         this.tokenizer = tokenizer;
         this.exprStarts = ctx.exprStarts;
         this.exprEnds = ctx.exprEnds;
+        this.ctx = ctx;
     }
 
     public Tokenizer getTokenizer() {
@@ -45,15 +50,15 @@ public class Parser {
 
     public Expr.Block parseBlock() {
         var items = new ArrayList<Expr>();
-        var lbraceToken = tokenizer.expect(TokenType.LBRACE);
+        var lbraceToken = expect(TokenType.LBRACE);
         while (tokenizer.hasNext()) {
             if (tokenizer.peek() == TokenType.RBRACE) {
                 break;
             }
             items.add(parseExpr());
-            tokenizer.expect(TokenType.SEMICOLON);
+            expect(TokenType.SEMICOLON);
         }
-        var rbraceToken = tokenizer.expect(TokenType.RBRACE);
+        var rbraceToken = expect(TokenType.RBRACE);
         return hook(new Expr.Block(items), lbraceToken, rbraceToken);
     }
 
@@ -64,11 +69,11 @@ public class Parser {
             }
             case K_LET -> {
                 Expr.Let expr = parseLet();
-                tokenizer.expect(TokenType.SEMICOLON);
+                expect(TokenType.SEMICOLON);
                 return expr;
             }
             default -> {
-                throw tokenizer.reportWrongTokenType(TokenType.K_FUNC, TokenType.K_LET);
+                throw reportWrongTokenType(TokenType.K_FUNC, TokenType.K_LET);
             }
         }
     }
@@ -169,14 +174,14 @@ public class Parser {
     }
 
     private Expr.While parseWhile() {
-        var whileToken = tokenizer.expect(TokenType.K_WHILE);
+        var whileToken = expect(TokenType.K_WHILE);
         Expr condition = parseParenExpr();
         Expr.Block body = parseBlock();
         return hook(new Expr.While(condition, body), whileToken, exprEnds.get(body));
     }
 
     private Expr.If parseIf() {
-        var startToken = tokenizer.expect(TokenType.K_IF);
+        var startToken = expect(TokenType.K_IF);
         Expr condition = parseParenExpr();
         Expr.Block thenBranch = parseBlock();
         Token endToken = exprEnds.get(thenBranch);
@@ -193,32 +198,32 @@ public class Parser {
                 endToken = exprEnds.get(elseBranch);
                 break;
             } else {
-                throw tokenizer.reportWrongTokenType(TokenType.K_IF, TokenType.LBRACE);
+                throw reportWrongTokenType(TokenType.K_IF, TokenType.LBRACE);
             }
         }
         return hook(new Expr.If(condition, thenBranch, elseIfs, elseBranch), startToken, endToken);
     }
 
     private Expr.Function parseFunction() {
-        var funcToken = tokenizer.expect(TokenType.K_FUNC);
-        Expr.Identifier name = createIdentifierExpr(tokenizer.expect(TokenType.IDENTIFIER));
-        tokenizer.expect(TokenType.LPAREN);
+        var funcToken = expect(TokenType.K_FUNC);
+        Expr.Identifier name = createIdentifierExpr(expect(TokenType.IDENTIFIER));
+        expect(TokenType.LPAREN);
         List<Expr.FuncParam> params = new ArrayList<>();
         while (true) {
             if (tokenizer.peek() == TokenType.RPAREN) {
                 break;
             }
-            Expr.Identifier paramName = createIdentifierExpr(tokenizer.expect(TokenType.IDENTIFIER));
-            tokenizer.expect(TokenType.COLON);
+            Expr.Identifier paramName = createIdentifierExpr(expect(TokenType.IDENTIFIER));
+            expect(TokenType.COLON);
             TypeExpr paramType = parseType();
             params.add(new Expr.FuncParam(paramName, paramType));
 
             if (tokenizer.peek() == TokenType.RPAREN) {
                 break;
             }
-            tokenizer.expect(TokenType.COMMA);
+            expect(TokenType.COMMA);
         }
-        tokenizer.expect(TokenType.RPAREN);
+        expect(TokenType.RPAREN);
         TypeExpr returnType = null;
         if (tokenizer.matchConsume(TokenType.ARROW)) {
             returnType = parseType();
@@ -228,23 +233,23 @@ public class Parser {
     }
 
     private Expr.Let parseLet() {
-        var letToken = tokenizer.expect(TokenType.K_LET);
-        Expr.Identifier name = createIdentifierExpr(tokenizer.expect(TokenType.IDENTIFIER));
-        tokenizer.expect(TokenType.COLON);
+        var letToken = expect(TokenType.K_LET);
+        Expr.Identifier name = createIdentifierExpr(expect(TokenType.IDENTIFIER));
+        expect(TokenType.COLON);
         TypeExpr type = parseType();
-        tokenizer.expect(TokenType.ASSIGN);
+        expect(TokenType.ASSIGN);
         Expr value = parseExpr();
         return hook(new Expr.Let(name, type, value), letToken, exprEnds.get(value));
     }
 
     private TypeExpr parseType() {
-        return new TypeExpr.Identifier(tokenizer.getSourceOf(tokenizer.expect(TokenType.IDENTIFIER)));
+        return new TypeExpr.Identifier(tokenizer.getSourceOf(expect(TokenType.IDENTIFIER)));
     }
 
     private Expr parseParenExpr() {
-        tokenizer.expect(TokenType.LPAREN);
+        expect(TokenType.LPAREN);
         Expr expr = parseExpr();
-        tokenizer.expect(TokenType.RPAREN);
+        expect(TokenType.RPAREN);
         return expr;
     }
 
@@ -300,7 +305,7 @@ public class Parser {
                 return hook(new Expr.Return(retValue), returnToken, retValue != null ? exprEnds.get(retValue) : returnToken);
             }
             default -> {
-                throw tokenizer.reportWrongTokenType(TokenType.LBRACE, TokenType.K_LET, TokenType.K_FUNC, TokenType.K_WHILE, TokenType.K_IF, TokenType.LPAREN, TokenType.NUMBER, TokenType.IDENTIFIER, TokenType.K_FALSE, TokenType.K_TRUE, TokenType.K_RETURN);
+                throw reportWrongTokenType(TokenType.LBRACE, TokenType.K_LET, TokenType.K_FUNC, TokenType.K_WHILE, TokenType.K_IF, TokenType.LPAREN, TokenType.NUMBER, TokenType.IDENTIFIER, TokenType.K_FALSE, TokenType.K_TRUE, TokenType.K_RETURN);
             }
         }
     }
@@ -311,13 +316,13 @@ public class Parser {
     }
 
     private Expr parseAssign(Expr.Identifier lhs) {
-        tokenizer.expect(TokenType.ASSIGN);
+        expect(TokenType.ASSIGN);
         Expr value = parseExpr();
         return hook(new Expr.Assign(lhs, value), exprStarts.get(lhs), exprEnds.get(value));
     }
 
     private Expr parseCall(Expr.Identifier name) {
-        tokenizer.expect(TokenType.LPAREN);
+        expect(TokenType.LPAREN);
         List<Expr> args = new ArrayList<>();
         while (true) {
             if (tokenizer.peek() == TokenType.RPAREN) {
@@ -327,13 +332,37 @@ public class Parser {
             if (tokenizer.peek() == TokenType.RPAREN) {
                 break;
             }
-            tokenizer.expect(TokenType.COMMA);
+            expect(TokenType.COMMA);
             if (tokenizer.peek() == TokenType.RPAREN) {
                 break;
             }
         }
-        var closeParenToken = tokenizer.expect(TokenType.RPAREN);
+        var closeParenToken = expect(TokenType.RPAREN);
         return hook(new Expr.Call(name, args), exprStarts.get(name), closeParenToken);
+    }
+
+    private Token expect(TokenType type) {
+        Token token = tokenizer.next();
+        if (token.type() != type) {
+            throw reportWrongTokenType(token, type);
+        }
+        return token;
+    }
+
+    @NotNull
+    private CompilerCtx.ParseError reportWrongTokenType(Token token, TokenType... expectedTypes) {
+        SourceSpan span = ctx.getSourceSpan(token);
+        if (expectedTypes.length == 1) {
+            return ctx.reportParseError(span, " Got " + token.type() + ", expected " + expectedTypes[0].repr);
+        } else {
+            String expected = Arrays.stream(expectedTypes).map(t -> t.repr).collect(Collectors.joining(", "));
+            return ctx.reportParseError(span, " Got " + token.type() + ", expected one of [" + expected + "]");
+        }
+    }
+
+    @NotNull
+    private CompilerCtx.ParseError reportWrongTokenType(TokenType... expectedTypes) {
+        return reportWrongTokenType(tokenizer.peekToken(), expectedTypes);
     }
 
     /*

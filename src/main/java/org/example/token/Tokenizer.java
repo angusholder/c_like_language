@@ -1,13 +1,10 @@
 package org.example.token;
 
 import org.example.CompilerCtx;
-import org.example.CompilerCtx.ParseError;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.stream.Collectors;
 
 public class Tokenizer {
     private final String source;
@@ -53,30 +50,6 @@ public class Tokenizer {
         Token result = peekToken();
         peeked = null;
         return result;
-    }
-
-    public Token expect(TokenType type) {
-        Token token = next();
-        if (token.type() != type) {
-            throw reportWrongTokenType(token, type);
-        }
-        return token;
-    }
-
-    @NotNull
-    public ParseError reportWrongTokenType(Token token, TokenType... expectedTypes) {
-        SourceSpan span = ctx.getSourceSpan(token);
-        if (expectedTypes.length == 1) {
-            return ctx.reportParseError(span, " Got " + token.type() + ", expected " + expectedTypes[0].repr);
-        } else {
-            String expected = Arrays.stream(expectedTypes).map(t -> t.repr).collect(Collectors.joining(", "));
-            return ctx.reportParseError(span, " Got " + token.type() + ", expected one of [" + expected + "]");
-        }
-    }
-
-    @NotNull
-    public ParseError reportWrongTokenType(TokenType... expectedTypes) {
-        return reportWrongTokenType(peekToken(), expectedTypes);
     }
 
     public boolean matchConsume(TokenType type) {
